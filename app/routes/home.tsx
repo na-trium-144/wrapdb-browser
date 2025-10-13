@@ -1,17 +1,56 @@
 import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "WrapDB Browser" },
+    { name: "description", content: "An unofficial browser for WrapDB packages." },
   ];
 }
 
-export function loader({ context }: Route.LoaderArgs) {
-  return { message: context.cloudflare.env.VALUE_FROM_CLOUDFLARE };
-}
+export default function Home() {
+  return (
+    <div className="bg-gray-950 text-gray-100 min-h-screen flex flex-col items-center justify-start pt-20 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-3xl text-center">
+        <header className="mb-8">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-2">WrapDB Browser</h1>
+          <p className="text-lg sm:text-xl text-gray-400">
+            The unofficial browser for WrapDB packages.
+          </p>
+        </header>
 
-export default function Home({ loaderData }: Route.ComponentProps) {
-  return <Welcome message={loaderData.message} />;
+        <main>
+          <div className="search-container mb-12">
+            <input
+              type="text"
+              placeholder="Search for a package (e.g., zlib, libpng)"
+              className="w-full p-4 text-lg bg-gray-800 border border-gray-700 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="descriptions text-left grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section className="bg-gray-900 p-6 rounded-lg border border-gray-800">
+              <h2 className="text-2xl font-semibold mb-3 pb-2 border-b border-gray-700">What is this site?</h2>
+              <p className="text-gray-300 leading-relaxed">
+                This is an unofficial web interface for searching packages available on WrapDB. You can quickly find the Meson build system wrap files you need.
+              </p>
+            </section>
+
+            <section className="bg-gray-900 p-6 rounded-lg border border-gray-800">
+              <h2 className="text-2xl font-semibold mb-3 pb-2 border-b border-gray-700">What is WrapDB?</h2>
+              <p className="text-gray-300 leading-relaxed">
+                WrapDB is the official package repository for the Meson build system. It provides a collection of build definitions (wraps) for various third-party libraries.
+              </p>
+            </section>
+
+            <section className="bg-gray-900 p-6 rounded-lg border border-gray-800 md:col-span-2">
+              <h2 className="text-2xl font-semibold mb-3 pb-2 border-b border-gray-700">What is Meson?</h2>
+              <p className="text-gray-300 leading-relaxed">
+                Meson is an open-source build system designed to be both extremely fast and as user-friendly as possible. It uses a simple, non-turing-complete DSL to define builds.
+              </p>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
 }
