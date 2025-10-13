@@ -19,10 +19,31 @@ type PackageResult = {
   program_names: string[];
 };
 
+// --- Scoring Logic ---
+function calculateScore(name: string, data: WrapDbPackageData, query: string): number {
+  const n = name.toLowerCase();
+  const q = query.toLowerCase();
+
+  if (n === q) return 100; // Exact name match
+  if (n.startsWith(q)) return 90; // Name starts with
+
+  const exactDepMatch = (data.dependency_names || []).some(dep => dep.toLowerCase() === q);
+  const exactProgMatch = (data.program_names || []).some(prog => prog.toLowerCase() === q);
+  if (exactDepMatch || exactProgMatch) return 80; // Exact match in deps/progs
+
+  if (n.includes(q)) return 70; // Name contains
+
+  const depMatch = (data.dependency_names || []).some(dep => dep.toLowerCase().includes(q));
+  const progMatch = (data.program_names || []).some(prog => prog.toLowerCase().includes(q));
+  if (depMatch || progMatch) return 50; // Contains match in deps/progs
+
+  return 0;
+}
+
 // --- Data Loader ---
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const query = url.searchParams.get("q")?.toLowerCase().trim();
+  const query = url.searchParams.get("q")?.trim();
 
   if (!query) {
     return { results: [] };
@@ -30,24 +51,22 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   try {
     const res = await fetch("https://wrapdb.mesonbuild.com/v2/releases.json");
-    if (!res.ok) {
-      throw new Error(`Failed to fetch releases: ${res.statusText}`);
-    }
+    if (!res.ok) throw new Error(`Failed to fetch releases: ${res.statusText}`);
     const packages: WrapDbPackages = await res.json();
 
     const searchResults = Object.entries(packages)
-      .filter(([name, data]) => {
-        const nameMatch = name.toLowerCase().includes(query);
-        const depMatch = (data.dependency_names || []).some(dep => dep.toLowerCase().includes(query));
-        const progMatch = (data.program_names || []).some(prog => prog.toLowerCase().includes(query));
-        return nameMatch || depMatch || progMatch;
-      })
-      .map(([name, data]): PackageResult => ({
-        name,
-        latest_version: data.versions[0] || 'N/A',
-        dependency_names: data.dependency_names || [],
-        program_names: data.program_names || [],
-      }));
+      .map(([name, data]) => ({
+        score: calculateScore(name, data, query),
+        pkg: {
+          name,
+          latest_version: data.versions[0] || 'N/A',
+          dependency_names: data.dependency_names || [],
+          program_names: data.program_names || [],
+        }
+      }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.pkg);
 
     return { results: searchResults };
 
