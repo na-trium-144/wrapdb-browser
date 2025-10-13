@@ -113,12 +113,14 @@ export default function Search() {
             <div className="space-y-4">
               <p className="text-gray-400 mb-4">Found {results.length} packages.</p>
               {results.map((pkg) => (
-                <div key={pkg.name} className="bg-gray-900 p-6 rounded-lg border border-gray-800 hover:border-blue-500 transition-colors">
-                  <h2 className="text-2xl font-semibold text-blue-400">{pkg.name}</h2>
-                  <p className="text-sm text-gray-400 mb-2">Latest Version: {pkg.latest_version}</p>
-                  {renderNameList("Dependencies", pkg.dependency_names)}
-                  {renderNameList("Programs", pkg.program_names)}
-                </div>
+                <Link to={`/package/${pkg.name}`} key={pkg.name} className="block">
+                  <div className="bg-gray-900 p-6 rounded-lg border border-gray-800 hover:border-blue-500 transition-all duration-200 ease-in-out transform hover:-translate-y-1">
+                    <h2 className="text-2xl font-semibold text-blue-400">{pkg.name}</h2>
+                    <p className="text-sm text-gray-400 mb-2">Latest Version: {pkg.latest_version}</p>
+                    {renderNameList("Dependencies", pkg.dependency_names)}
+                    {renderNameList("Programs", pkg.program_names)}
+                  </div>
+                </Link>
               ))}
             </div>
           ) : (
