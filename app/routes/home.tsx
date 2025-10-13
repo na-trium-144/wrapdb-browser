@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { Route } from "./+types/home";
+import { useNavigate } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -8,6 +10,16 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
+  const [query, setQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
+  };
+
   return (
     <div className="bg-gray-950 text-gray-100 min-h-screen flex flex-col items-center justify-start pt-20 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-3xl text-center">
@@ -20,11 +32,15 @@ export default function Home() {
 
         <main>
           <div className="search-container mb-12">
-            <input
-              type="text"
-              placeholder="Search for a package (e.g., zlib, libpng)"
-              className="w-full p-4 text-lg bg-gray-800 border border-gray-700 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+            <form onSubmit={handleSearch}>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search for a package (e.g., zlib, libpng)"
+                className="w-full p-4 text-lg bg-gray-800 border border-gray-700 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </form>
           </div>
 
           <div className="descriptions text-left grid grid-cols-1 md:grid-cols-2 gap-6">
