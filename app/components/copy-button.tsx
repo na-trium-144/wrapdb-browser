@@ -24,7 +24,7 @@ export function CopyButton({ textToCopy }: CopyButtonProps) {
       className={clsx(
         "px-3 py-1.5 text-sm rounded-md",
         "bg-link hover:bg-linkh text-base-0 transition-colors",
-        "flex items-center gap-2",
+        "flex items-center gap-2 cursor-pointer",
       )}
       aria-label="Copy code to clipboard"
       title={copied ? "Copied!" : "Copy to clipboard"}

@@ -1,6 +1,6 @@
 import React from "react";
-import { useLoaderData, Link, useNavigate, useParams } from "react-router";
-import type { Route } from "./+types/package.$name.$version";
+import { useLoaderData, Link, useNavigate, useFetcher } from "react-router";
+import type { Route } from "./+types/package";
 import {
   fetchReleases,
   fetchWrap,
@@ -12,6 +12,9 @@ import { fetchMetadata, type PackageMetadata } from "~/utils/metadata";
 import { Section } from "~/components/section";
 import clsx from "clsx";
 import { GithubIcon, LinkIcon, TagIcon } from "~/components/icon";
+import { useEffect } from "react";
+import useSWR from "swr";
+import JSZip from "jszip";
 
 // --- Types ---
 type PackageDetail =
@@ -79,11 +82,29 @@ export async function loader({
   }
 }
 
+const patchFetcher = ([name, version]: [string, string]) =>
+  fetch(`/get_patch/${name}/${version}`).then(async (res) => {
+    if (!res.ok) throw new Error(`Failed to fetch patch: ${res.statusText}`);
+    const zip = await JSZip.loadAsync(res.blob());
+    const extractedFiles: Record<string, string> = {};
+    for (const filename in zip.files) {
+      if (!zip.files[filename].dir) {
+        // Exclude directories
+        const content = await zip.files[filename].async("text"); // Or "text", "arraybuffer"
+        // トップレベルのディレクトリを取り除く
+        extractedFiles[filename.split("/").slice(1).join("/")] = content;
+        // You can then do something with the content, e.g., display it or save it
+      }
+    }
+    return extractedFiles;
+  });
+
 // --- Component ---
 export default function PackageDetailPage() {
   const pkg = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const params = useParams();
+  const patchSWR = useSWR([pkg.name, pkg.version], patchFetcher);
+  console.log(patchSWR.data);
 
   return (
     <>
@@ -95,7 +116,9 @@ export default function PackageDetailPage() {
           >
             &larr; Back to search
           </Link>
-          <h1 className="text-5xl font-bold mt-4 text-content-0 dark:text-content-0d">{pkg.name}</h1>
+          <h1 className="text-5xl font-bold mt-4 text-content-0 dark:text-content-0d">
+            {pkg.name}
+          </h1>
           <div className="text-lg mt-4 space-y-2">
             <p className="text-content-2 dark:text-content-2d">
               {pkg.error === null
@@ -123,8 +146,12 @@ export default function PackageDetailPage() {
                     <TagIcon className="inline-block w-4 h-4 ml-1 mr-1" />
                     <span>{pkg.metadata.upstreamVersion}</span>
                     {pkg.metadata.isOutdated && (
-                      <span className={clsx("ml-2 px-2 py-1 text-xs",
-                        "text-base-0 bg-warn rounded-full")}>
+                      <span
+                        className={clsx(
+                          "ml-2 px-2 py-1 text-xs",
+                          "text-base-0 bg-warn rounded-full",
+                        )}
+                      >
                         Outdated
                       </span>
                     )}
@@ -151,13 +178,11 @@ export default function PackageDetailPage() {
         {pkg.error === null && (
           <main className="space-y-6">
             <h2 className="flex flex-row items-baseline gap-4">
-              <span className="text-xl font-semibold">
-                Version:
-              </span>
+              <span className="text-xl font-semibold">Version:</span>
               <select
                 value={pkg.version}
                 onChange={(e) =>
-                  navigate(`/package/${params.name}/${e.target.value}`)
+                  navigate(`/package/${pkg.name}/${e.target.value}`)
                 }
                 className="p-2 border rounded-md bg-base-1 dark:bg-base-1d border-base-2 dark:border-base-2d"
               >
@@ -182,7 +207,8 @@ export default function PackageDetailPage() {
               {pkg.version === pkg.packageData.versions[0] ? (
                 <>
                   <p className="mb-4">
-                    Install the latest {pkg.name} package with the following command:
+                    Install the latest {pkg.name} package with the following
+                    command:
                   </p>
                   <CodeBlockWithCopyButton
                     code={`meson wrap install ${pkg.name}`}
@@ -217,8 +243,8 @@ export default function PackageDetailPage() {
               )}
               <div className="border-b border-base-2 dark:border-base-2d mb-4" />
               <p className="mb-4">
-                Libraries (or programs) from {pkg.name} {pkg.version} can be used
-                by adding the following lines to your meson.build file:
+                Libraries (or programs) from {pkg.name} {pkg.version} can be
+                used by adding the following lines to your meson.build file:
               </p>
               <CodeBlockWithCopyButton
                 code={[
@@ -233,9 +259,55 @@ export default function PackageDetailPage() {
                   .join("\n")}
               />
             </Section>
+
+            <Section title="Patch Files Preview">
+              {patchSWR.isLoading && <p>Loading patch files...</p>}
+              {patchSWR.error && <p>Could not load patch files.</p>}
+              {patchSWR.data && <PatchFilePreview files={patchSWR.data} />}
+            </Section>
           </main>
         )}
       </div>
     </>
+  );
+}
+
+function PatchFilePreview({ files }: { files: Record<string, string> }) {
+  const sortedKeys = Object.keys(files);
+  sortedKeys.sort();
+  const [selectedFile, setSelectedFile] = React.useState(sortedKeys[0]);
+
+  return (
+    <div className="flex gap-4 h-64">
+      <div className="w-1/4 h-full overflow-y-auto">
+        <ul className="flex flex-col gap-1">
+          {sortedKeys.map((filename) => (
+            <li key={filename}>
+              <button
+                onClick={() => setSelectedFile(filename)}
+                className={clsx(
+                  "text-sm w-full text-left px-2 py-1 rounded-md",
+                  selectedFile === filename
+                    ? "bg-link text-base-0"
+                    : "hover:bg-base-2 dark:hover:bg-base-2d cursor-pointer",
+                )}
+              >
+                {filename}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex-1 min-w-0 ">
+        <pre
+          className={clsx(
+            "bg-base-2 dark:bg-base-2d p-4 rounded-md text-sm",
+            "text-content-1 dark:text-content-1d h-full overflow-auto",
+          )}
+        >
+          <code>{files[selectedFile]}</code>
+        </pre>
+      </div>
+    </div>
   );
 }

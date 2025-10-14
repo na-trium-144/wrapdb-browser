@@ -13,7 +13,6 @@ export type WrapDbPackages = {
 };
 
 export type WrapFileData = {
-  patchUrl?: string;
   sourceUrl?: string;
   dependencyNames: string[];
   programNames: string[];
@@ -37,7 +36,6 @@ export async function fetchWrap(
   );
   if (!res.ok) throw new Error(`Failed to fetch wrap file: ${res.statusText}`);
   const wrapIni = INI.parse(await res.text());
-  const patchUrl = wrapIni["wrap-file"]?.patch_url;
   const sourceUrl = wrapIni["wrap-file"]?.source_url;
   let dependencyNames: string[] = [];
   let programNames: string[] = [];
@@ -53,5 +51,16 @@ export async function fetchWrap(
   if (!dependencyNames.length && !programNames.length) {
     dependencyNames = [packageName];
   }
-  return { patchUrl, sourceUrl, dependencyNames, programNames };
+  return { sourceUrl, dependencyNames, programNames };
+}
+
+export async function fetchPatch(
+  packageName: string,
+  version: string,
+): Promise<Response> {
+  const res = await fetchWithCache(
+    `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/get_patch`,
+  );
+  if (!res.ok) throw new Error(`Failed to fetch patch: ${res.statusText}`);
+  return res;
 }
