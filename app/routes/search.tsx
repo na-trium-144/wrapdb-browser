@@ -102,7 +102,7 @@ export default function Search() {
             <div className="space-y-4">
               <p className="text-gray-600 dark:text-gray-400 mb-4">Found {results.length} packages.</p>
               {results.map((pkg) => (
-                <Link to={`/package/${pkg.name}`} key={pkg.name} className="block">
+                <Link to={`/package/${pkg.name}/${pkg.latest_version}`} key={pkg.name} className="block">
                   <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-blue-500 transition-all duration-200 ease-in-out transform hover:-translate-y-1">
                     <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-400">{pkg.name}</h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Latest Version: {pkg.latest_version}</p>

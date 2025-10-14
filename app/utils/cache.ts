@@ -6,13 +6,15 @@ export async function fetchWithCache(
   const cache = await caches.open("wrapdb-cache");
   const cachedResponse = await cache.match(key);
   if (cachedResponse) {
-    // console.log(`Cache hit for ${key}`);
+    console.log(`Cache hit for ${key}`);
     return cachedResponse;
   } else {
-    // console.log(`Cache miss for ${key}`);
+    console.log(`Cache miss for ${key}`);
     const response = await fetcher(key);
     if (response.ok) {
-      cache.put(key, response.clone());
+      const responseForCache = new Response(response.clone().body, response);
+      responseForCache.headers.delete("Cache-Control");
+      cache.put(key, responseForCache);
     }
     return response;
   }

@@ -1,5 +1,6 @@
-import { useLoaderData, Link } from "react-router";
-import type { Route } from "./+types/package.$name";
+import React from "react";
+import { useLoaderData, Link, useNavigate, useParams } from "react-router";
+import type { Route } from "./+types/package.$name.$version";
 import {
   fetchReleases,
   fetchWrap,
@@ -13,6 +14,7 @@ import { fetchMetadata, type PackageMetadata } from "~/utils/metadata";
 type PackageDetail =
   | {
       name: string;
+      version: string;
       error: null;
       packageData: WrapDbPackageData;
       wrapFileData: WrapFileData;
@@ -20,6 +22,7 @@ type PackageDetail =
     }
   | {
       name: string;
+      version: string;
       error: "notFound" | "error";
     };
 
@@ -29,39 +32,45 @@ export async function loader({
   context,
 }: Route.LoaderArgs): Promise<PackageDetail> {
   const name = params.name || "";
+  const version = params.version || "";
 
   try {
     const packages = await fetchReleases();
     const packageData = packages[name];
 
-    if (!packageData) {
+    if (!packageData || !packageData.versions.includes(version)) {
       return {
         name: name,
+        version: version,
         error: "notFound",
       };
     }
-    if (packageData.versions.length === 0) {
-      throw new Error(`No versions available for package: ${name}`);
-    }
 
-    const wrapFileData = await fetchWrap(name, packageData.versions[0]);
-    const metadata = await fetchMetadata(
-      wrapFileData.sourceUrl || "",
-      packageData.versions[0],
-      context.cloudflare.env,
+    const wrapFileData = fetchWrap(name, version);
+
+    // 選択したバージョンによらず常に最新のものを取得
+    const latestWrapFileData = fetchWrap(name, packageData.versions[0]);
+    const metadata = latestWrapFileData.then((latestWrapFileData) =>
+      fetchMetadata(
+        latestWrapFileData.sourceUrl || "",
+        packageData.versions[0],
+        context.cloudflare.env,
+      ),
     );
 
     return {
       name: name,
+      version: version,
       error: null,
       packageData,
-      wrapFileData,
-      metadata,
+      wrapFileData: await wrapFileData,
+      metadata: await metadata,
     };
   } catch (error) {
     console.error("Failed to fetch package data:", error);
     return {
       name: name,
+      version: version,
       error: "error",
     };
   }
@@ -70,6 +79,13 @@ export async function loader({
 // --- Component ---
 export default function PackageDetailPage() {
   const pkg = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
+  const params = useParams();
+
+  const handleVersionChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newVersion = event.target.value;
+    navigate(`/package/${params.name}/${newVersion}`);
+  };
 
   const renderNameList = (names: string[]) => {
     if (names.length === 0)
@@ -91,7 +107,7 @@ export default function PackageDetailPage() {
   return (
     <div className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen pt-10 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl mx-auto">
-        <header className="mb-8">
+        <header className="mb-6">
           <Link
             to="/"
             className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 transition-colors"
@@ -108,21 +124,22 @@ export default function PackageDetailPage() {
                   : "An error occurred while fetching package information."}
             </p>
             {pkg.error === null && pkg.metadata.repo && (
-              <div className="flex items-center gap-4 text-lg">
+              <div className="text-lg">
                 <a
                   href={`https://github.com/${pkg.metadata.repo.owner}/${pkg.metadata.repo.name}`}
                   target="_blank"
                   rel="noopener"
-                  className="flex items-center text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  <GithubIcon className="w-5 h-5 mr-2" />
+                  <GithubIcon className="inline-block w-5 h-5 mr-2" />
                   <span>
                     {pkg.metadata.repo.owner}/{pkg.metadata.repo.name}
                   </span>
                 </a>
                 {pkg.metadata.upstreamVersion && (
-                  <div className="flex items-center text-base text-gray-600 dark:text-gray-400">
-                    <TagIcon className="w-4 h-4 mr-1" />
+                  <div className="inline-block text-base text-gray-600 dark:text-gray-400 ml-4">
+                    <span className="text-sm">Latest Version:</span>
+                    <TagIcon className="inline-block w-4 h-4 ml-1 mr-1" />
                     <span>{pkg.metadata.upstreamVersion}</span>
                     {pkg.metadata.isOutdated && (
                       <span className="ml-2 px-2 py-1 text-xs font-semibold text-white bg-yellow-500 dark:bg-yellow-700 rounded-full">
@@ -151,18 +168,30 @@ export default function PackageDetailPage() {
 
         {pkg.error === null && (
           <main className="space-y-6">
-            <Section title="Available Versions">
-              <div className="flex flex-wrap gap-2">
-                {pkg.packageData.versions.map((v, i) => (
-                  <span
-                    key={v}
-                    className={`px-3 py-1 text-sm rounded-full ${i === 0 ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"}`}
-                  >
-                    {v}
-                  </span>
-                ))}
-              </div>
-            </Section>
+            <div className="flex flex-row items-baseline gap-4">
+              <span className="text-xl font-semibold text-gray-800 dark:text-gray-300">
+                Version:
+              </span>
+              <select
+                value={pkg.version}
+                onChange={handleVersionChange}
+                className="p-2 border rounded-md bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+              >
+                {pkg.packageData.versions
+                  .filter(
+                    (v, i) =>
+                      // 同じパッケージバージョンが複数ある場合は最新のリビジョンのみを表示
+                      !pkg.packageData.versions
+                        .at(i - 1)
+                        ?.startsWith(v.split("-")[0]),
+                  )
+                  .map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+              </select>
+            </div>
 
             <Section title="Dependencies">
               {renderNameList(pkg.wrapFileData.dependencyNames)}
