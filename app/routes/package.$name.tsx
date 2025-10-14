@@ -26,6 +26,7 @@ type PackageDetail =
 // --- Data Loader ---
 export async function loader({
   params,
+  context,
 }: Route.LoaderArgs): Promise<PackageDetail> {
   const name = params.name || "";
 
@@ -47,6 +48,7 @@ export async function loader({
     const metadata = await fetchMetadata(
       wrapFileData.sourceUrl || "",
       packageData.versions[0],
+      context.cloudflare.env,
     );
 
     return {
@@ -97,13 +99,54 @@ export default function PackageDetailPage() {
             &larr; Back to search
           </Link>
           <h1 className="text-5xl font-bold mt-4">{pkg.name}</h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
-            {pkg.error === null
-              ? pkg.metadata.description
-              : pkg.error === "notFound"
-                ? "Package not found in WrapDB."
-                : "An error occurred while fetching package information."}
-          </p>
+          <div className="text-lg mt-4 space-y-2">
+            <p className="text-gray-600 dark:text-gray-400">
+              {pkg.error === null
+                ? pkg.metadata.description
+                : pkg.error === "notFound"
+                  ? "Package not found in WrapDB."
+                  : "An error occurred while fetching package information."}
+            </p>
+            {pkg.error === null && pkg.metadata.repo && (
+              <div className="flex items-center gap-4 text-lg">
+                <a
+                  href={`https://github.com/${pkg.metadata.repo.owner}/${pkg.metadata.repo.name}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <GithubIcon className="w-5 h-5 mr-2" />
+                  <span>
+                    {pkg.metadata.repo.owner}/{pkg.metadata.repo.name}
+                  </span>
+                </a>
+                {pkg.metadata.upstreamVersion && (
+                  <div className="flex items-center text-base text-gray-600 dark:text-gray-400">
+                    <TagIcon className="w-4 h-4 mr-1" />
+                    <span>{pkg.metadata.upstreamVersion}</span>
+                    {pkg.metadata.isOutdated && (
+                      <span className="ml-2 px-2 py-1 text-xs font-semibold text-white bg-yellow-500 dark:bg-yellow-700 rounded-full">
+                        Outdated
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            {pkg.error === null && pkg.metadata.homepage && (
+              <p>
+                <a
+                  href={pkg.metadata.homepage}
+                  target="_blank"
+                  rel="noopener"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <LinkIcon className="inline-block w-5 h-5 mr-2" />
+                  <span>{pkg.metadata.homepage}</span>
+                </a>
+              </p>
+            )}
+          </div>
         </header>
 
         {pkg.error === null && (
@@ -164,5 +207,64 @@ function Section({
       </h2>
       {children}
     </div>
+  );
+}
+
+function LinkIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72" />
+    </svg>
+  );
+}
+
+function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+    </svg>
+  );
+}
+
+function TagIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+      <path d="M7 7h.01" />
+    </svg>
   );
 }
