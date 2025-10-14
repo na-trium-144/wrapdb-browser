@@ -1,6 +1,7 @@
 import { useLoaderData, Link } from "react-router";
 import type { Route } from "./+types/package.$name";
 import { fetchReleases } from "~/utils/wrapdb";
+import { CopyButton } from "~/components/copy-button";
 
 // --- Types ---
 type PackageDetail = {
@@ -126,9 +127,14 @@ export default function PackageDetailPage() {
           {renderSection("Programs", renderNameList(pkg.program_names))}
 
           {renderSection("Usage (meson.build)", (
-            <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm text-gray-800 dark:text-gray-200 overflow-x-auto">
-              <code>{pkg.usage}</code>
-            </pre>
+            <div className="relative">
+              <div className="absolute top-0 right-0">
+                <CopyButton textToCopy={pkg.usage} />
+              </div>
+              <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm text-gray-800 dark:text-gray-200 overflow-x-auto">
+                <code>{pkg.usage}</code>
+              </pre>
+            </div>
           ))}
         </main>
       </div>
