@@ -1,4 +1,5 @@
 import * as INI from "ini";
+import { fetchWithCache } from "./cache";
 
 // --- Types ---
 export type WrapDbPackageData = {
@@ -20,7 +21,9 @@ export type WrapFileData = {
 
 // --- API Functions ---
 export async function fetchReleases(): Promise<WrapDbPackages> {
-  const res = await fetch("https://wrapdb.mesonbuild.com/v2/releases.json");
+  const res = await fetchWithCache(
+    "https://wrapdb.mesonbuild.com/v2/releases.json",
+  );
   if (!res.ok) throw new Error(`Failed to fetch releases: ${res.statusText}`);
   return await res.json();
 }
@@ -29,7 +32,7 @@ export async function fetchWrap(
   packageName: string,
   version: string,
 ): Promise<WrapFileData> {
-  const res = await fetch(
+  const res = await fetchWithCache(
     `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/${packageName}.wrap`,
   );
   if (!res.ok) throw new Error(`Failed to fetch wrap file: ${res.statusText}`);
