@@ -1,3 +1,5 @@
+import * as INI from "ini";
+
 // --- Types ---
 export type WrapDbPackageData = {
   dependency_names?: string[];
@@ -9,9 +11,41 @@ export type WrapDbPackages = {
   [packageName: string]: WrapDbPackageData;
 };
 
+export type WrapFileData = {
+  patchUrl?: string;
+  sourceUrl?: string;
+  dependencyNames: string[];
+  programNames: string[];
+};
+
 // --- API Functions ---
 export async function fetchReleases(): Promise<WrapDbPackages> {
   const res = await fetch("https://wrapdb.mesonbuild.com/v2/releases.json");
   if (!res.ok) throw new Error(`Failed to fetch releases: ${res.statusText}`);
   return await res.json();
+}
+
+export async function fetchWrap(
+  packageName: string,
+  version: string,
+): Promise<WrapFileData> {
+  const res = await fetch(
+    `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/${packageName}.wrap`,
+  );
+  if (!res.ok) throw new Error(`Failed to fetch wrap file: ${res.statusText}`);
+  const wrapIni = INI.parse(await res.text());
+  const patchUrl = wrapIni["wrap-file"]?.patch_url;
+  const sourceUrl = wrapIni["wrap-file"]?.source_url;
+  let dependencyNames: string[] = [];
+  let programNames: string[] = [];
+  for (const [key, value] of Object.entries(wrapIni["provide"] || {})) {
+    if (key === "dependency_names") {
+      dependencyNames = (value as string).split(",").map((s) => s.trim());
+    } else if (key === "program_names") {
+      programNames = (value as string).split(",").map((s) => s.trim());
+    } else {
+      dependencyNames.push(key);
+    }
+  }
+  return { patchUrl, sourceUrl, dependencyNames, programNames };
 }
