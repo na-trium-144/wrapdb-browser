@@ -88,7 +88,7 @@ export default function Search() {
       <div className="flex flex-wrap items-center gap-2 mt-3">
         <span className="text-sm font-semibold">{title}:</span>
         {names.map(name => (
-            <span key={name} className="px-2 py-1 bg-gray-700 text-gray-200 text-xs rounded-full">
+            <span key={name} className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs rounded-full">
                 {name}
             </span>
         ))}
@@ -97,11 +97,11 @@ export default function Search() {
   }
 
   return (
-    <div className="bg-gray-950 text-gray-100 min-h-screen pt-10 px-4 sm:px-6 lg:px-8">
+    <div className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen pt-10 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl mx-auto">
         <header className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold">
-            Search Results for: <span className="text-blue-400">{query}</span>
+            Search Results for: <span className="text-blue-600 dark:text-blue-400">{query}</span>
           </h1>
           <Link to="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             &larr; Back to Home
@@ -111,12 +111,12 @@ export default function Search() {
         <main>
           {results.length > 0 ? (
             <div className="space-y-4">
-              <p className="text-gray-400 mb-4">Found {results.length} packages.</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">Found {results.length} packages.</p>
               {results.map((pkg) => (
                 <Link to={`/package/${pkg.name}`} key={pkg.name} className="block">
-                  <div className="bg-gray-900 p-6 rounded-lg border border-gray-800 hover:border-blue-500 transition-all duration-200 ease-in-out transform hover:-translate-y-1">
-                    <h2 className="text-2xl font-semibold text-blue-400">{pkg.name}</h2>
-                    <p className="text-sm text-gray-400 mb-2">Latest Version: {pkg.latest_version}</p>
+                  <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-blue-500 transition-all duration-200 ease-in-out transform hover:-translate-y-1">
+                    <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-400">{pkg.name}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Latest Version: {pkg.latest_version}</p>
                     {renderNameList("Dependencies", pkg.dependency_names)}
                     {renderNameList("Programs", pkg.program_names)}
                   </div>
@@ -124,9 +124,9 @@ export default function Search() {
               ))}
             </div>
           ) : (
-            <div className="bg-gray-900 p-8 rounded-lg border border-gray-800 text-center">
+            <div className="bg-gray-50 dark:bg-gray-900 p-8 rounded-lg border border-gray-200 dark:border-gray-800 text-center">
               <h2 className="text-2xl font-semibold mb-2">No results found.</h2>
-              <p className="text-gray-400">Please check the spelling or try a different search term.</p>
+              <p className="text-gray-600 dark:text-gray-400">Please check the spelling or try a different search term.</p>
             </div>
           )}
         </main>
