@@ -1,17 +1,8 @@
 import { useLoaderData, useSearchParams, Link } from "react-router";
 import type { Route } from "./+types/search";
+import { fetchReleases, type WrapDbPackageData } from "~/utils/wrapdb";
 
 // --- Types ---
-type WrapDbPackageData = {
-  dependency_names?: string[];
-  program_names?: string[];
-  versions: string[];
-};
-
-type WrapDbPackages = {
-  [packageName: string]: WrapDbPackageData;
-};
-
 type PackageResult = {
   name: string;
   latest_version: string;
@@ -50,9 +41,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const res = await fetch("https://wrapdb.mesonbuild.com/v2/releases.json");
-    if (!res.ok) throw new Error(`Failed to fetch releases: ${res.statusText}`);
-    const packages: WrapDbPackages = await res.json();
+    const packages = await fetchReleases();
 
     const searchResults = Object.entries(packages)
       .map(([name, data]) => ({
