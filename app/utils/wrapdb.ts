@@ -50,5 +50,8 @@ export async function fetchWrap(
       dependencyNames.push(key);
     }
   }
+  if (!dependencyNames.length && !programNames.length) {
+    dependencyNames = [packageName];
+  }
   return { patchUrl, sourceUrl, dependencyNames, programNames };
 }

@@ -82,28 +82,6 @@ export default function PackageDetailPage() {
   const navigate = useNavigate();
   const params = useParams();
 
-  const handleVersionChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const newVersion = event.target.value;
-    navigate(`/package/${params.name}/${newVersion}`);
-  };
-
-  const renderNameList = (names: string[]) => {
-    if (names.length === 0)
-      return <p className="text-gray-600 dark:text-gray-400">None</p>;
-    return (
-      <div className="flex flex-wrap gap-2">
-        {names.map((name) => (
-          <span
-            key={name}
-            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm rounded-full"
-          >
-            {name}
-          </span>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen pt-10 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl mx-auto">
@@ -138,7 +116,7 @@ export default function PackageDetailPage() {
                 </a>
                 {pkg.metadata.upstreamVersion && (
                   <div className="inline-block text-base text-gray-600 dark:text-gray-400 ml-4">
-                    <span className="text-sm">Latest Version:</span>
+                    <span className="text-sm">Latest Upstream Version:</span>
                     <TagIcon className="inline-block w-4 h-4 ml-1 mr-1" />
                     <span>{pkg.metadata.upstreamVersion}</span>
                     {pkg.metadata.isOutdated && (
@@ -174,7 +152,9 @@ export default function PackageDetailPage() {
               </span>
               <select
                 value={pkg.version}
-                onChange={handleVersionChange}
+                onChange={(e) =>
+                  navigate(`/package/${params.name}/${e.target.value}`)
+                }
                 className="p-2 border rounded-md bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
               >
                 {pkg.packageData.versions
@@ -188,20 +168,54 @@ export default function PackageDetailPage() {
                   .map((v) => (
                     <option key={v} value={v}>
                       {v}
+                      {v === pkg.packageData.versions[0] ? " (latest)" : ""}
                     </option>
                   ))}
               </select>
             </div>
 
-            <Section title="Dependencies">
-              {renderNameList(pkg.wrapFileData.dependencyNames)}
-            </Section>
-
-            <Section title="Programs">
-              {renderNameList(pkg.wrapFileData.programNames)}
-            </Section>
-
-            <Section title="Usage (meson.build)">
+            <Section title="Usage">
+              {pkg.version === pkg.packageData.versions[0] ? (
+                <>
+                  <p className="mb-4 text-gray-700 dark:text-gray-300">
+                    Install the latest {pkg.name} package with the following command:
+                  </p>
+                  <CodeBlockWithCopyButton
+                    code={`meson wrap install ${pkg.name}`}
+                  />
+                  <p className="mt-4 mb-4 text-gray-700 dark:text-gray-300">
+                    Or, download the wrap file directly from
+                    <a
+                      href={`https://wrapdb.mesonbuild.com/v2/${pkg.name}_${pkg.version}/${pkg.name}.wrap`}
+                      target="_blank"
+                      rel="noopener"
+                      className="text-blue-600 dark:text-blue-400 hover:underline mx-1"
+                    >
+                      this link
+                    </a>
+                    and place it in the 'subprojects' directory of your project.
+                  </p>
+                </>
+              ) : (
+                <p className="mb-4 text-gray-700 dark:text-gray-300">
+                  To use version {pkg.version} of {pkg.name}, you need to
+                  manually download the wrap file from
+                  <a
+                    href={`https://wrapdb.mesonbuild.com/v2/${pkg.name}_${pkg.version}/${pkg.name}.wrap`}
+                    target="_blank"
+                    rel="noopener"
+                    className="text-blue-600 dark:text-blue-400 hover:underline mx-1"
+                  >
+                    this link
+                  </a>
+                  and place it in the 'subprojects' directory of your project.
+                </p>
+              )}
+              <div className="border-b border-gray-200 dark:border-gray-700 mb-4" />
+              <p className="mb-4 text-gray-700 dark:text-gray-300">
+                Libraries (or programs) of {pkg.name} {pkg.version} can be used
+                by adding the following lines to your meson.build file:
+              </p>
               <CodeBlockWithCopyButton
                 code={[
                   pkg.wrapFileData.dependencyNames.map(
