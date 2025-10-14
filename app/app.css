@@ -5,9 +5,25 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-}
-
-html,
-body {
-  @apply bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100;
+  --color-base-0: var(--color-neutral-100);
+  --color-base-1: var(--color-neutral-200);
+  --color-base-2: var(--color-neutral-300);
+  --color-base-3: var(--color-neutral-400);
+  --color-content-0: var(--color-black);
+  --color-content-1: var(--color-neutral-800);
+  --color-content-2: var(--color-neutral-600);
+  --color-content-3: var(--color-neutral-500);
+  --color-link: var(--color-blue-600);
+  --color-linkh: var(--color-blue-800);
+  --color-warn: var(--color-yellow-600);
+  --color-base-0d: var(--color-slate-800);
+  --color-base-1d: var(--color-slate-700);
+  --color-base-2d: var(--color-slate-600);
+  --color-base-3d: var(--color-slate-500);
+  --color-content-0d: var(--color-slate-100);
+  --color-content-1d: var(--color-slate-200);
+  --color-content-2d: var(--color-slate-300);
+  --color-content-3d: var(--color-slate-400);
+  --color-linkd: var(--color-blue-400);
+  --color-linkdh: var(--color-blue-500);
 }

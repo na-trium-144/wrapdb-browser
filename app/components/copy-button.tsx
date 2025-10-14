@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import { useState } from "react";
 
 interface CopyButtonProps {
@@ -20,7 +21,11 @@ export function CopyButton({ textToCopy }: CopyButtonProps) {
   return (
     <button
       onClick={handleCopy}
-      className="px-3 py-1.5 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2"
+      className={clsx(
+        "px-3 py-1.5 text-sm rounded-md",
+        "bg-link hover:bg-linkh text-base-0 transition-colors",
+        "flex items-center gap-2",
+      )}
       aria-label="Copy code to clipboard"
       title={copied ? "Copied!" : "Copy to clipboard"}
     >
@@ -71,7 +76,12 @@ export function CodeBlockWithCopyButton({ code }: { code: string }) {
       <div className="absolute top-0 right-0">
         <CopyButton textToCopy={code} />
       </div>
-      <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm text-gray-800 dark:text-gray-200 overflow-x-auto">
+      <pre
+        className={clsx(
+          "bg-base-2 dark:bg-base-2d p-4 rounded-md text-sm",
+          "text-content-1 dark:text-content-1d max-h-64 overflow-auto",
+        )}
+      >
         <code>{code}</code>
       </pre>
     </div>
