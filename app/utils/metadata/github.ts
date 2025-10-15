@@ -1,4 +1,3 @@
-import { fetchWithCache } from "../cache";
 import type { PackageMetadata } from "../metadata";
 
 export async function fetchMetadataGitHub(
@@ -12,10 +11,15 @@ export async function fetchMetadataGitHub(
     "User-Agent": "wrapdb-browser",
     ...(env.GITHUB_PAT ? { Authorization: `Bearer ${env.GITHUB_PAT}` } : {}),
   };
-  const res = await fetchWithCache(
+  const res = await fetch(
     `https://api.github.com/repos/${repoOwner}/${repoName}`,
-    "s-maxage=86400",
-    (url) => fetch(url, { headers: githubAPIHeaders }),
+    {
+      headers: githubAPIHeaders,
+      cf: {
+        cacheTtl: 86400,
+        cacheEverything: true,
+      },
+    },
   );
   if (!res.ok) {
     throw new Error(`Failed to fetch metadata: ${res.statusText}`);
@@ -43,10 +47,15 @@ export async function fetchMetadataGitHub(
       .split(wrapLatestVersion)[0];
     let tagAPIPage = 1;
     while (true) {
-      const tagsRes = await fetchWithCache(
+      const tagsRes = await fetch(
         `https://api.github.com/repos/${repoOwner}/${repoName}/tags?per_page=100&page=${tagAPIPage}`,
-        "s-maxage=300",
-        (url) => fetch(url, { headers: githubAPIHeaders }),
+        {
+          headers: githubAPIHeaders,
+          cf: {
+            cacheTtl: 300,
+            cacheEverything: true,
+          },
+        },
       );
       if (!tagsRes.ok) {
         throw new Error(`Failed to fetch tags: ${tagsRes.statusText}`);
