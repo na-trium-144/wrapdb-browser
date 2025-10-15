@@ -171,7 +171,7 @@ export default function Home() {
                   rel="noopener"
                   className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
                 >
-                  Learn more →
+                  Learn more &rarr;
                 </a>
               </p>
             </Section>
@@ -186,7 +186,7 @@ export default function Home() {
                   rel="noopener"
                   className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
                 >
-                  Learn more →
+                  Learn more &rarr;
                 </a>
               </p>
             </Section>
