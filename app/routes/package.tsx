@@ -24,7 +24,7 @@ type PackageDetail =
       error: null;
       packageData: WrapDbPackageData;
       wrapFileData: WrapFileData;
-      metadata: PackageMetadata;
+      metadata?: PackageMetadata;
     }
   | {
       name: string;
@@ -82,8 +82,13 @@ export async function loader({
   }
 }
 
-const patchFetcher = ([name, version]: [string, string]) =>
-  fetch(`/get_patch/${name}/${version}`).then(async (res) => {
+async function patchFetcher([name, version, hasPatchUrl]: [
+  string,
+  string,
+  boolean,
+]): Promise<Record<string, string> | null> {
+  if (!hasPatchUrl) return null;
+  return fetch(`/get_patch/${name}/${version}`).then(async (res) => {
     if (!res.ok) throw new Error(`Failed to fetch patch: ${res.statusText}`);
     const zip = await JSZip.loadAsync(res.blob());
     const extractedFiles: Record<string, string> = {};
@@ -98,13 +103,19 @@ const patchFetcher = ([name, version]: [string, string]) =>
     }
     return extractedFiles;
   });
+}
 
 // --- Component ---
 export default function PackageDetailPage() {
   const pkg = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const patchSWR = useSWR([pkg.name, pkg.version], patchFetcher);
-  console.log(patchSWR.data);
+  const patchSWR = useSWR(
+    [pkg.name, pkg.version, pkg.error === null && pkg.wrapFileData.hasPatchUrl],
+    patchFetcher,
+    {
+      revalidateOnFocus: false,
+    },
+  );
 
   return (
     <>
@@ -121,13 +132,36 @@ export default function PackageDetailPage() {
           </h1>
           <div className="text-lg mt-4 space-y-2">
             <p className="text-content-2 dark:text-content-2d">
-              {pkg.error === null
-                ? pkg.metadata.description
-                : pkg.error === "notFound"
-                  ? "Package not found in WrapDB."
-                  : "An error occurred while fetching package information."}
+              {pkg.error === null ? (
+                pkg.metadata ? (
+                  pkg.metadata.description
+                ) : (
+                  <>
+                    <p className="">
+                      Metadata for this package is not yet available in WrapDB
+                      Browser.
+                    </p>
+                    <p className="">
+                      Source URL is{" "}
+                      <a
+                        href={pkg.wrapFileData.sourceUrl}
+                        target="_blank"
+                        rel="noopener"
+                        className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
+                      >
+                        {pkg.wrapFileData.sourceUrl}
+                      </a>
+                      .
+                    </p>
+                  </>
+                )
+              ) : pkg.error === "notFound" ? (
+                "Package not found in WrapDB."
+              ) : (
+                "An error occurred while fetching package information."
+              )}
             </p>
-            {pkg.error === null && pkg.metadata.repo && (
+            {pkg.error === null && pkg.metadata?.repo && (
               <div className="text-lg">
                 <a
                   href={`https://github.com/${pkg.metadata.repo.owner}/${pkg.metadata.repo.name}`}
@@ -159,7 +193,7 @@ export default function PackageDetailPage() {
                 )}
               </div>
             )}
-            {pkg.error === null && pkg.metadata.homepage && (
+            {pkg.error === null && pkg.metadata?.homepage && (
               <p>
                 <a
                   href={pkg.metadata.homepage}
@@ -172,6 +206,19 @@ export default function PackageDetailPage() {
                 </a>
               </p>
             )}
+          </div>
+          <div className="text-sm italic text-content-2 dark:text-content-2d mt-3">
+            Package metadata is not taken from the WrapDB database and may be
+            inaccurate. If you find any problems, search an issue or PR{" "}
+            <a
+              href={`https://github.com/na-trium-144/wrapdb-browser/issues?q=is%3Aopen+${pkg.name}`}
+              target="_blank"
+              rel="noopener"
+              className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
+            >
+              on GitHub
+            </a>
+            , or file a new one.
           </div>
         </header>
 
@@ -261,9 +308,15 @@ export default function PackageDetailPage() {
             </Section>
 
             <Section title="Patch Files Preview">
-              {patchSWR.isLoading && <p>Loading patch files...</p>}
-              {patchSWR.error && <p>Could not load patch files.</p>}
-              {patchSWR.data && <PatchFilePreview files={patchSWR.data} />}
+              {!pkg.wrapFileData.hasPatchUrl ? (
+                <p>No patch files needed for this package.</p>
+              ) : patchSWR.data ? (
+                <PatchFilePreview files={patchSWR.data} />
+              ) : patchSWR.error ? (
+                <p>Could not load patch files.</p>
+              ) : (
+                patchSWR.isLoading && <p>Loading patch files...</p>
+              )}
             </Section>
           </main>
         )}

@@ -16,6 +16,7 @@ export type WrapFileData = {
   sourceUrl: string;
   dependencyNames: string[];
   programNames: string[];
+  hasPatchUrl: boolean;
 };
 
 // --- API Functions ---
@@ -37,6 +38,15 @@ export async function fetchWrap(
   if (!res.ok) throw new Error(`Failed to fetch wrap file: ${res.statusText}`);
   const wrapIni = INI.parse(await res.text());
   const sourceUrl = wrapIni["wrap-file"]?.source_url;
+  const patchUrl = wrapIni["wrap-file"]?.patch_url;
+  const hasPatchUrl =
+    patchUrl ===
+    `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/get_patch`;
+  if (!hasPatchUrl && patchUrl) {
+    console.warn(
+      `Warning: Detected non-standard patch_url in ${packageName} ${version}: ${patchUrl}`,
+    );
+  }
   let dependencyNames: string[] = [];
   let programNames: string[] = [];
   for (const [key, value] of Object.entries(wrapIni["provide"] || {})) {
@@ -51,7 +61,7 @@ export async function fetchWrap(
   if (!dependencyNames.length && !programNames.length) {
     dependencyNames = [packageName];
   }
-  return { sourceUrl, dependencyNames, programNames };
+  return { sourceUrl, dependencyNames, programNames, hasPatchUrl };
 }
 
 export async function fetchPatch(

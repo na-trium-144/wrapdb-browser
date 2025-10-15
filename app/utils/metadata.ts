@@ -19,14 +19,16 @@ export async function fetchMetadata(
   sourceUrl: string,
   wrapLatestVersion: string,
   env: any,
-): Promise<PackageMetadata> {
+): Promise<PackageMetadata | undefined> {
   // the version number of wrap is `<package version>-<wrap revision>`.
   // so remove the suffix here.
   wrapLatestVersion = wrapLatestVersion.split("-")[0];
 
   if (sourceUrl.startsWith("https://github.com")) {
     return fetchMetadataGitHub(sourceUrl, wrapLatestVersion, env);
-  } else {
-    return {};
   }
+  // Add more source URL handlers here in the future (e.g., GitLab, etc.)
+  // Or, some custom logic for specific packages
+
+  return undefined;
 }
