@@ -1,6 +1,7 @@
 import { useLoaderData, useSearchParams, Link } from "react-router";
 import type { Route } from "./+types/search";
-import { fetchReleases, type WrapDbPackageData } from "~/utils/wrapdb";
+import { fetchReleases, fetchWrap, type WrapDbPackageData } from "~/utils/wrapdb";
+import { fetchMetadata } from "~/utils/metadata";
 import clsx from "clsx";
 
 // --- Types ---
@@ -9,6 +10,7 @@ type PackageResult = {
   latest_version: string;
   dependency_names: string[];
   program_names: string[];
+  description?: string;
 };
 
 // --- Scoring Logic ---
@@ -45,7 +47,7 @@ function calculateScore(
 }
 
 // --- Data Loader ---
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim();
 
@@ -70,7 +72,33 @@ export async function loader({ request }: Route.LoaderArgs) {
       .sort((a, b) => b.score - a.score)
       .map((item) => item.pkg);
 
-    return { results: searchResults };
+    // Fetch metadata (description) for each search result
+    const resultsWithMetadata: PackageResult[] = await Promise.all(
+      searchResults.map(async (pkg) => {
+        try {
+          const wrapData = await fetchWrap(pkg.name, pkg.latest_version);
+          if (wrapData.sourceUrl) {
+            const metadata = await fetchMetadata(
+              wrapData.sourceUrl,
+              pkg.latest_version,
+              context.cloudflare.env,
+            );
+            return {
+              ...pkg,
+              description: metadata.description,
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch metadata for ${pkg.name}:`, error);
+        }
+        return {
+          ...pkg,
+          description: undefined,
+        };
+      }),
+    );
+
+    return { results: resultsWithMetadata };
   } catch (error) {
     console.error("Failed to search packages:", error);
     return { results: [] };
@@ -138,6 +166,11 @@ export default function Search() {
                     <h2 className="text-2xl font-semibold text-link dark:text-linkd">
                       {pkg.name}
                     </h2>
+                    {pkg.description && (
+                      <p className="text-sm text-content-2 dark:text-content-2d mt-2">
+                        {pkg.description}
+                      </p>
+                    )}
                     <p className="text-sm text-content-2 dark:text-content-2d mb-2">
                       Latest Version: {pkg.latest_version}
                     </p>
