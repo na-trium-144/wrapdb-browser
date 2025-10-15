@@ -237,9 +237,9 @@ export default function PackageDetailPage() {
                   .filter(
                     (v, i) =>
                       // 同じパッケージバージョンが複数ある場合は最新のリビジョンのみを表示
-                      !pkg.packageData.versions
-                        .at(i - 1)
-                        ?.startsWith(v.split("-")[0]),
+                      !pkg.packageData.versions[i - 1]?.startsWith(
+                        v.split("-")[0],
+                      ),
                   )
                   .map((v) => (
                     <option key={v} value={v}>
