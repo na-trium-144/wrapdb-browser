@@ -84,19 +84,18 @@ export default function Home() {
         </header>
 
         <main>
-          <div className="relative search-container mb-12">
-            <form onSubmit={handleSearch}>
+          <div className="relative search-container mb-12 w-full max-w-120 mx-auto">
+            <form onSubmit={handleSearch} className="flex">
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search for a package (e.g., zlib, libpng)"
                 className={clsx(
-                  "w-full p-4 text-lg bg-base-2 dark:bg-base-2d",
-                  "border border-base-3 dark:border-base-3d rounded-lg",
+                  "flex-1 px-4 py-2 text-lg bg-base-2 dark:bg-base-2d",
+                  "border border-base-3 dark:border-base-3d border-r-transparent rounded-l-lg",
                   "placeholder-content-3 dark:placeholder-content-3d text-content-0 dark:text-content-0d",
                   "focus:outline-none focus:ring-2 focus:ring-link dark:focus:ring-linkd",
-                  "focus:border-link dark:focus:border-linkd",
                 )}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
@@ -105,11 +104,22 @@ export default function Home() {
                 }}
                 autoComplete="off"
               />
+              <button
+                type="submit"
+                className={clsx(
+                  "w-24 bg-link text-base-0 rounded-r-lg",
+                  "hover:bg-linkh focus:bg-linkh",
+                  "focus:outline-none focus:ring-2 focus:ring-link dark:focus:ring-linkd",
+                  "transition-colors cursor-pointer",
+                )}
+              >
+                Search
+              </button>
             </form>
             {suggestions.length > 0 && (
               <ul
                 className={clsx(
-                  "absolute inset-x-0 z-10 mt-1 overflow-hidden",
+                  "absolute left-0 right-24 z-10 mt-1 overflow-hidden",
                   "bg-base-1 dark:bg-base-1d border border-base-3 dark:border-base-3d rounded-lg",
                   "shadow-lg text-left",
                 )}
