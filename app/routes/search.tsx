@@ -9,6 +9,7 @@ import {
 import { fetchMetadata, type PackageMetadata } from "~/utils/metadata";
 import clsx from "clsx";
 import { GithubIcon } from "~/components/icon";
+import { calculateScore } from "~/utils/search";
 
 // --- Types ---
 type PackageResult = {
@@ -17,39 +18,6 @@ type PackageResult = {
   wrapFileData?: WrapFileData;
   metadata?: PackageMetadata;
 };
-
-// --- Scoring Logic ---
-function calculateScore(
-  name: string,
-  data: WrapDbPackageData,
-  query: string,
-): number {
-  const n = name.toLowerCase();
-  const q = query.toLowerCase();
-
-  if (n === q) return 100; // Exact name match
-  if (n.startsWith(q)) return 90; // Name starts with
-
-  const exactDepMatch = (data.dependency_names || []).some(
-    (dep) => dep.toLowerCase() === q,
-  );
-  const exactProgMatch = (data.program_names || []).some(
-    (prog) => prog.toLowerCase() === q,
-  );
-  if (exactDepMatch || exactProgMatch) return 80; // Exact match in deps/progs
-
-  if (n.includes(q)) return 70; // Name contains
-
-  const depMatch = (data.dependency_names || []).some((dep) =>
-    dep.toLowerCase().includes(q),
-  );
-  const progMatch = (data.program_names || []).some((prog) =>
-    prog.toLowerCase().includes(q),
-  );
-  if (depMatch || progMatch) return 50; // Contains match in deps/progs
-
-  return 0;
-}
 
 // --- Data Loader ---
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -160,7 +128,10 @@ export default function Search() {
                           pkg.metadata?.isOutdated === false &&
                             "bg-success text-content-1",
                           pkg.metadata?.isOutdated === undefined &&
-                            "bg-base-2 text-content-1 dark:bg-base-2d dark:text-content-1d",
+                            clsx(
+                              "bg-base-2 text-content-1 dark:bg-base-2d dark:text-content-1d",
+                              "border border-base-3 dark:border-base-3d",
+                            ),
                         )}
                       >
                         {pkg.packageData.versions[0]}

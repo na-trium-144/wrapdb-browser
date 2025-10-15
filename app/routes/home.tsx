@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/home";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Section } from "~/components/section";
 import clsx from "clsx";
 
@@ -14,16 +14,62 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
+type Suggestion = {
+  name: string;
+  latest_version: string;
+};
+
 export default function Home() {
   const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const navigate = useNavigate();
+
+  const suggestionController = useRef(new AbortController());
+  useEffect(() => {
+    setSuggestions([]);
+
+    if (query.trim().length < 2) {
+      return;
+    }
+
+    suggestionController.current = new AbortController();
+    const timer = setTimeout(() => {
+      fetch(`/search_suggestions?q=${encodeURIComponent(query.trim())}`, {
+        signal: suggestionController.current.signal,
+      })
+        .then((res) => res.json() as Promise<{ suggestions: Suggestion[] }>)
+        .then((data) => setSuggestions(data.suggestions || []))
+        .catch((error) => {
+          if (error.name !== "AbortError") {
+            console.error("Failed to fetch suggestions:", error);
+          }
+        });
+    }, 300); // 300ms debounce
+
+    return () => {
+      clearTimeout(timer);
+      suggestionController.current.abort();
+    };
+  }, [query]);
+  const abortSuggestion = useCallback(() => {
+    suggestionController.current.abort();
+    setSuggestions([]);
+  }, []);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (query.trim()) {
+      setSuggestions([]);
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
     }
   };
+
+  useEffect(() => {
+    window.addEventListener("click", abortSuggestion);
+    return () => {
+      window.removeEventListener("click", abortSuggestion);
+    };
+  }, []);
 
   return (
     <>
@@ -38,7 +84,7 @@ export default function Home() {
         </header>
 
         <main>
-          <div className="search-container mb-12">
+          <div className="relative search-container mb-12">
             <form onSubmit={handleSearch}>
               <input
                 type="text"
@@ -52,8 +98,47 @@ export default function Home() {
                   "focus:outline-none focus:ring-2 focus:ring-link dark:focus:ring-linkd",
                   "focus:border-link dark:focus:border-linkd",
                 )}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    abortSuggestion();
+                  }
+                }}
+                autoComplete="off"
               />
             </form>
+            {suggestions.length > 0 && (
+              <ul
+                className={clsx(
+                  "absolute inset-x-0 z-10 mt-1 overflow-hidden",
+                  "bg-base-1 dark:bg-base-1d border border-base-3 dark:border-base-3d rounded-lg",
+                  "shadow-lg text-left",
+                )}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {suggestions.map((suggestion) => (
+                  <li key={suggestion.name}>
+                    <Link
+                      to={`/package/${suggestion.name}/${suggestion.latest_version}`}
+                      className={clsx(
+                        "block px-4 py-3 text-base text-content-0 dark:text-content-0d",
+                        "hover:bg-base-2 dark:hover:bg-base-2d",
+                      )}
+                    >
+                      {suggestion.name}
+                      <span
+                        className={clsx(
+                          "inline-block ml-2 px-2 py-1 text-xs rounded-full",
+                          "bg-base-2 text-content-1 dark:bg-base-2d dark:text-content-1d",
+                          "border border-base-3 dark:border-base-3d",
+                        )}
+                      >
+                        {suggestion.latest_version}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <Section
