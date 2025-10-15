@@ -1,5 +1,5 @@
 import React from "react";
-import { useLoaderData, Link, useNavigate, useFetcher } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import type { Route } from "./+types/package";
 import {
   fetchReleases,
@@ -7,15 +7,14 @@ import {
   type WrapDbPackageData,
   type WrapFileData,
 } from "~/utils/wrapdb";
-import { CodeBlockWithCopyButton } from "~/components/copy-button";
 import { fetchMetadata, type PackageMetadata } from "~/utils/metadata";
 import { Section } from "~/components/section";
 import clsx from "clsx";
 import { GithubIcon, LinkIcon, TagIcon } from "~/components/icon";
-import { useEffect } from "react";
 import useSWR from "swr";
 import JSZip from "jszip";
 import { Header } from "~/components/header";
+import { CodeBlock } from "~/components/code-block";
 
 // --- Types ---
 type PackageDetail =
@@ -251,9 +250,9 @@ export default function PackageDetailPage() {
                     Install the latest {pkg.name} package with the following
                     command:
                   </p>
-                  <CodeBlockWithCopyButton
-                    code={`meson wrap install ${pkg.name}`}
-                  />
+                  <CodeBlock
+                    copyButton
+                  >{`meson wrap install ${pkg.name}`}</CodeBlock>
                   <p className="mt-4 mb-4">
                     Or, download the wrap file directly from
                     <a
@@ -287,8 +286,8 @@ export default function PackageDetailPage() {
                 Libraries (or programs) from {pkg.name} {pkg.version} can be
                 used by adding the following lines to your meson.build file:
               </p>
-              <CodeBlockWithCopyButton
-                code={[
+              <CodeBlock copyButton language="meson">
+                {[
                   pkg.wrapFileData.dependencyNames.map(
                     (name) => `${name}_dep = dependency('${name}')`,
                   ),
@@ -298,7 +297,7 @@ export default function PackageDetailPage() {
                 ]
                   .flat()
                   .join("\n")}
-              />
+              </CodeBlock>
             </Section>
 
             <Section title="Patch Files Preview">
@@ -345,15 +344,19 @@ function PatchFilePreview({ files }: { files: Record<string, string> }) {
           ))}
         </ul>
       </div>
-      <div className="flex-1 min-w-0 ">
-        <pre
-          className={clsx(
-            "bg-base-2 dark:bg-base-2d p-4 rounded-md text-sm",
-            "text-content-1 dark:text-content-1d h-full overflow-auto",
-          )}
+      <div className="flex-1 min-w-0 h-full">
+        <CodeBlock
+          showLineNumbers
+          className="h-full"
+          divClassName="h-full"
+          language={
+            /\/?meson.build$|^meson_options.txt$/.test(selectedFile)
+              ? "meson"
+              : "text"
+          }
         >
-          <code>{files[selectedFile]}</code>
-        </pre>
+          {files[selectedFile]}
+        </CodeBlock>
       </div>
     </div>
   );
