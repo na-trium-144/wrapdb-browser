@@ -55,7 +55,9 @@ export async function fetchMetadataGitHub(
         .map((tag) => tag.name)
         .filter((tag) => !/alpha|beta|rc|dev|test|snapshot/i.test(tag))
         .find((tag) =>
-          tag.replaceAll(/[^a-zA-Z0-9]/g, ".").startsWith(lookupVersionPrefix),
+          new RegExp("^" + lookupVersionPrefix + "[0-9]+\\.+").test(
+            tag.replaceAll(/[^a-zA-Z0-9]/g, "."),
+          ),
         );
       if (upstreamVersion) {
         isOutdated =
