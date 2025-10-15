@@ -23,6 +23,7 @@ export type WrapFileData = {
 export async function fetchReleases(): Promise<WrapDbPackages> {
   const res = await fetchWithCache(
     "https://wrapdb.mesonbuild.com/v2/releases.json",
+    "s-maxage=300",
   );
   if (!res.ok) throw new Error(`Failed to fetch releases: ${res.statusText}`);
   return await res.json();
@@ -34,6 +35,7 @@ export async function fetchWrap(
 ): Promise<WrapFileData> {
   const res = await fetchWithCache(
     `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/${packageName}.wrap`,
+    "immutable",
   );
   if (!res.ok) throw new Error(`Failed to fetch wrap file: ${res.statusText}`);
   const wrapIni = INI.parse(await res.text());
@@ -70,6 +72,7 @@ export async function fetchPatch(
 ): Promise<Response> {
   const res = await fetchWithCache(
     `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/get_patch`,
+    "immutable",
   );
   if (!res.ok) throw new Error(`Failed to fetch patch: ${res.statusText}`);
   return res;

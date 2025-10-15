@@ -14,6 +14,7 @@ export async function fetchMetadataGitHub(
   };
   const res = await fetchWithCache(
     `https://api.github.com/repos/${repoOwner}/${repoName}`,
+    "s-maxage=86400",
     (url) => fetch(url, { headers: githubAPIHeaders }),
   );
   if (!res.ok) {
@@ -44,6 +45,7 @@ export async function fetchMetadataGitHub(
     while (true) {
       const tagsRes = await fetchWithCache(
         `https://api.github.com/repos/${repoOwner}/${repoName}/tags?per_page=100&page=${tagAPIPage}`,
+        "s-maxage=300",
         (url) => fetch(url, { headers: githubAPIHeaders }),
       );
       if (!tagsRes.ok) {
