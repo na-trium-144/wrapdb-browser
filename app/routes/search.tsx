@@ -57,7 +57,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const query = url.searchParams.get("q")?.trim();
 
   if (!query) {
-    return { results: [] };
+    return { results: [], query: "" };
   }
 
   try {
@@ -100,11 +100,27 @@ export async function loader({ request, context }: Route.LoaderArgs) {
           }
         }),
       )) satisfies PackageResult[],
+      query,
     };
   } catch (error) {
     console.error("Failed to search packages:", error);
-    return { results: [] };
+    return { results: [], query };
   }
+}
+
+// --- Meta ---
+export function meta({ data }: Route.MetaArgs) {
+  const query = data?.query || "";
+  
+  return [
+    { title: query ? `Search: ${query} - WrapDB Browser` : "Search - WrapDB Browser" },
+    {
+      name: "description",
+      content: query 
+        ? `Search results for "${query}" in WrapDB packages for Meson build system.`
+        : "Search WrapDB packages for Meson build system.",
+    },
+  ];
 }
 
 // --- Component ---
