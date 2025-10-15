@@ -13,7 +13,7 @@ export type WrapDbPackages = {
 };
 
 export type WrapFileData = {
-  sourceUrl?: string;
+  sourceUrl: string;
   dependencyNames: string[];
   programNames: string[];
 };

@@ -10,7 +10,7 @@ export async function fetchMetadataGitHub(
   const repoName = sourceUrl.split("/")[4].replace(/\.git$/, "");
   const githubAPIHeaders = {
     "User-Agent": "wrapdb-browser",
-    Authorization: `Bearer ${env.GITHUB_PAT}`,
+    ...(env.GITHUB_PAT ? { Authorization: `Bearer ${env.GITHUB_PAT}` } : {}),
   };
   const res = await fetchWithCache(
     `https://api.github.com/repos/${repoOwner}/${repoName}`,

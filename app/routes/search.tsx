@@ -1,6 +1,11 @@
 import { useLoaderData, useSearchParams, Link } from "react-router";
 import type { Route } from "./+types/search";
-import { fetchReleases, fetchWrap, type WrapDbPackageData } from "~/utils/wrapdb";
+import {
+  fetchReleases,
+  fetchWrap,
+  type WrapDbPackageData,
+  type WrapFileData,
+} from "~/utils/wrapdb";
 import { fetchMetadata, type PackageMetadata } from "~/utils/metadata";
 import clsx from "clsx";
 import { GithubIcon } from "~/components/icon";
@@ -8,9 +13,8 @@ import { GithubIcon } from "~/components/icon";
 // --- Types ---
 type PackageResult = {
   name: string;
-  latest_version: string;
-  dependency_names: string[];
-  program_names: string[];
+  packageData: WrapDbPackageData;
+  wrapFileData?: WrapFileData;
   metadata?: PackageMetadata;
 };
 
@@ -62,44 +66,41 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const searchResults = Object.entries(packages)
       .map(([name, data]) => ({
         score: calculateScore(name, data, query),
-        pkg: {
-          name,
-          latest_version: data.versions[0] || "N/A",
-          dependency_names: data.dependency_names || [],
-          program_names: data.program_names || [],
-        },
+        name,
+        pkg: data,
       }))
       .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map((item) => item.pkg);
+      .sort((a, b) => b.score - a.score);
 
-    // Fetch metadata (description, repo, isOutdated) for each search result
-    const resultsWithMetadata: PackageResult[] = await Promise.all(
-      searchResults.map(async (pkg) => {
-        try {
-          const wrapData = await fetchWrap(pkg.name, pkg.latest_version);
-          if (wrapData.sourceUrl) {
+    return {
+      results: (await Promise.all(
+        searchResults.map(async ({ name, pkg }) => {
+          try {
+            if (pkg.versions.length === 0)
+              throw new Error("No versions available");
+            const latestVersion = pkg.versions[0];
+            const wrapData = await fetchWrap(name, latestVersion);
             const metadata = await fetchMetadata(
               wrapData.sourceUrl,
-              pkg.latest_version,
+              latestVersion,
               context.cloudflare.env,
             );
             return {
-              ...pkg,
+              name,
+              packageData: pkg,
+              wrapFileData: wrapData,
               metadata,
             };
+          } catch (error) {
+            console.error(`Failed to fetch metadata for ${name}:`, error);
+            return {
+              name,
+              packageData: pkg,
+            };
           }
-        } catch (error) {
-          console.error(`Failed to fetch metadata for ${pkg.name}:`, error);
-        }
-        return {
-          ...pkg,
-          metadata: undefined,
-        };
-      }),
-    );
-
-    return { results: resultsWithMetadata };
+        }),
+      )) satisfies PackageResult[],
+    };
   } catch (error) {
     console.error("Failed to search packages:", error);
     return { results: [] };
@@ -111,23 +112,6 @@ export default function Search() {
   const { results } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q");
-
-  const renderNameList = (title: string, names: string[]) => {
-    if (names.length === 0) return null;
-    return (
-      <div className="flex flex-wrap items-center gap-2 mt-3">
-        <span className="text-sm font-semibold">{title}:</span>
-        {names.map((name) => (
-          <span
-            key={name}
-            className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs rounded-full"
-          >
-            {name}
-          </span>
-        ))}
-      </div>
-    );
-  };
 
   return (
     <>
@@ -153,7 +137,7 @@ export default function Search() {
               </p>
               {results.map((pkg) => (
                 <Link
-                  to={`/package/${pkg.name}/${pkg.latest_version}`}
+                  to={`/package/${pkg.name}/${pkg.packageData.versions[0]}`}
                   key={pkg.name}
                   className="block"
                 >
@@ -164,42 +148,51 @@ export default function Search() {
                       "transition-transform duration-200 ease-in-out transform hover:-translate-y-1",
                     )}
                   >
-                    <h2 className="text-2xl font-semibold text-link dark:text-linkd">
-                      {pkg.name}
-                    </h2>
-                    <p className="text-sm text-content-2 dark:text-content-2d mt-1">
-                      Latest Version:{" "}
+                    <h2>
+                      <span className="text-2xl font-semibold text-link dark:text-linkd">
+                        {pkg.name}
+                      </span>
                       <span
                         className={clsx(
-                          pkg.metadata?.isOutdated && "bg-warn px-1 rounded",
+                          "inline-block ml-2 px-2 py-1 text-xs rounded-full",
+                          pkg.metadata?.isOutdated === true &&
+                            "bg-warn text-base-0",
+                          pkg.metadata?.isOutdated === false &&
+                            "bg-success text-content-1",
+                          pkg.metadata?.isOutdated === undefined &&
+                            "bg-base-2 text-content-1 dark:bg-base-2d dark:text-content-1d",
                         )}
                       >
-                        {pkg.latest_version}
+                        {pkg.packageData.versions[0]}
                       </span>
-                    </p>
-                    {pkg.metadata?.repo && (
-                      <p className="text-sm mt-2">
-                        <a
-                          href={`https://github.com/${pkg.metadata.repo.owner}/${pkg.metadata.repo.name}`}
-                          target="_blank"
-                          rel="noopener"
-                          className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline inline-flex items-center"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <GithubIcon className="inline-block w-4 h-4 mr-1" />
+                      {pkg.metadata?.repo && (
+                        <span className="inline-block ml-2 text-base/8 text-content-2 dark:text-content-2d">
+                          &mdash;
+                          <GithubIcon className="inline-block w-4 h-4 ml-2 mr-1" />
                           <span>
                             {pkg.metadata.repo.owner}/{pkg.metadata.repo.name}
                           </span>
-                        </a>
-                      </p>
-                    )}
+                        </span>
+                      )}
+                    </h2>
                     {pkg.metadata?.description && (
-                      <p className="text-sm text-content-2 dark:text-content-2d mt-2 line-clamp-2">
+                      <p className="text-base text-content-1 dark:text-content-1d mt-2 line-clamp-2">
                         {pkg.metadata.description}
                       </p>
                     )}
-                    {renderNameList("Dependencies", pkg.dependency_names)}
-                    {renderNameList("Programs", pkg.program_names)}
+                    {pkg.wrapFileData &&
+                      pkg.wrapFileData.dependencyNames.length >= 1 && (
+                        <p className="text-sm text-content-2 dark:text-content-2d mt-1 line-clamp-2">
+                          Libraries:{" "}
+                          {pkg.wrapFileData.dependencyNames.join(", ")}
+                        </p>
+                      )}
+                    {pkg.wrapFileData &&
+                      pkg.wrapFileData.programNames.length >= 1 && (
+                        <p className="text-sm text-content-2 dark:text-content-2d mt-1 line-clamp-2">
+                          Programs: {pkg.wrapFileData.programNames.join(", ")}
+                        </p>
+                      )}
                   </div>
                 </Link>
               ))}

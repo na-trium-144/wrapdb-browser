@@ -15,6 +15,7 @@
   --color-content-3: var(--color-neutral-500);
   --color-link: var(--color-blue-600);
   --color-linkh: var(--color-blue-800);
+  --color-success: var(--color-green-400);
   --color-warn: var(--color-yellow-600);
   --color-base-0d: var(--color-slate-800);
   --color-base-1d: var(--color-slate-700);
