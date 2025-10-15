@@ -58,7 +58,7 @@ export async function loader({
     const latestWrapFileData = fetchWrap(name, packageData.versions[0]);
     const metadata = latestWrapFileData.then((latestWrapFileData) =>
       fetchMetadata(
-        latestWrapFileData.sourceUrl || "",
+        latestWrapFileData.sourceUrl,
         packageData.versions[0],
         context.cloudflare.env,
       ),
