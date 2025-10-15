@@ -2,7 +2,12 @@ import type { Route } from "./+types/search_suggestions";
 import { fetchReleases } from "~/utils/wrapdb";
 import { calculateScore } from "~/utils/search";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export type Suggestion = {
+  name: string;
+  latest_version: string;
+};
+
+export async function loader({ request }: Route.LoaderArgs): Promise<{ suggestions: Suggestion[] }> {
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim();
 

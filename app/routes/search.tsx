@@ -10,6 +10,7 @@ import { fetchMetadata, type PackageMetadata } from "~/utils/metadata";
 import clsx from "clsx";
 import { GithubIcon } from "~/components/icon";
 import { calculateScore } from "~/utils/search";
+import { Header } from "~/components/header";
 
 // --- Types ---
 type PackageResult = {
@@ -124,19 +125,12 @@ export default function Search() {
 
   return (
     <>
-      <div className="w-full max-w-4xl mx-auto">
-        <header className="mb-4 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-content-0 dark:text-content-0d">
-            Search Results for:
-            <span className="ml-2 text-link dark:text-linkd">{query}</span>
-          </h1>
-          <Link
-            to="/"
-            className="px-4 py-2 rounded-lg bg-link text-base-0 hover:bg-linkh transition-colors"
-          >
-            &larr; Back to Home
-          </Link>
-        </header>
+      <Header />
+      <div className="mt-24 w-full max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-content-0 dark:text-content-0d">
+          Search Results for:
+          <span className="ml-2 text-link dark:text-linkd">{query}</span>
+        </h1>
 
         <main>
           {results.length > 0 ? (
@@ -246,7 +240,10 @@ export default function Search() {
                         {item}
                       </Link>
                     ) : (
-                      <span key={index} className="p-2 text-content-2 dark:text-content-2d hidden md:inline">
+                      <span
+                        key={index}
+                        className="p-2 text-content-2 dark:text-content-2d hidden md:inline"
+                      >
                         {item}
                       </span>
                     ),

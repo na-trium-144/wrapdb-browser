@@ -15,6 +15,7 @@ import { GithubIcon, LinkIcon, TagIcon } from "~/components/icon";
 import { useEffect } from "react";
 import useSWR from "swr";
 import JSZip from "jszip";
+import { Header } from "~/components/header";
 
 // --- Types ---
 type PackageDetail =
@@ -119,111 +120,104 @@ export default function PackageDetailPage() {
 
   return (
     <>
-      <div className="w-full max-w-4xl mx-auto">
-        <header className="mb-6">
-          <Link
-            to="/"
-            className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh dark:hover:text-blue-500 transition-colors"
-          >
-            &larr; Back to search
-          </Link>
-          <h1 className="text-5xl font-bold mt-4 text-content-0 dark:text-content-0d">
-            {pkg.name}
-          </h1>
-          <div className="text-lg mt-4 space-y-2">
-            <p className="text-content-2 dark:text-content-2d">
-              {pkg.error === null ? (
-                pkg.metadata ? (
-                  pkg.metadata.description
-                ) : (
-                  <>
-                    <p className="">
-                      Metadata for this package is not yet available in WrapDB
-                      Browser.
-                    </p>
-                    <p className="">
-                      Source URL is{" "}
-                      <a
-                        href={pkg.wrapFileData.sourceUrl}
-                        target="_blank"
-                        rel="noopener"
-                        className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
-                      >
-                        {pkg.wrapFileData.sourceUrl}
-                      </a>
-                      .
-                    </p>
-                  </>
-                )
-              ) : pkg.error === "notFound" ? (
-                "Package not found in WrapDB."
+      <Header />
+      <div className="mt-24 w-full max-w-4xl mx-auto">
+        <h1 className="text-5xl font-bold mt-4 text-content-0 dark:text-content-0d">
+          {pkg.name}
+        </h1>
+        <div className="text-lg mt-4 space-y-2">
+          <p className="text-content-2 dark:text-content-2d">
+            {pkg.error === null ? (
+              pkg.metadata ? (
+                pkg.metadata.description
               ) : (
-                "An error occurred while fetching package information."
+                <>
+                  <p className="">
+                    Metadata for this package is not yet available in WrapDB
+                    Browser.
+                  </p>
+                  <p className="">
+                    Source URL is{" "}
+                    <a
+                      href={pkg.wrapFileData.sourceUrl}
+                      target="_blank"
+                      rel="noopener"
+                      className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
+                    >
+                      {pkg.wrapFileData.sourceUrl}
+                    </a>
+                    .
+                  </p>
+                </>
+              )
+            ) : pkg.error === "notFound" ? (
+              "Package not found in WrapDB."
+            ) : (
+              "An error occurred while fetching package information."
+            )}
+          </p>
+          {pkg.error === null && pkg.metadata?.repo && (
+            <div className="text-lg">
+              <a
+                href={`https://github.com/${pkg.metadata.repo.owner}/${pkg.metadata.repo.name}`}
+                target="_blank"
+                rel="noopener"
+                className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
+              >
+                <GithubIcon className="inline-block w-5 h-5 mr-2" />
+                <span>
+                  {pkg.metadata.repo.owner}/{pkg.metadata.repo.name}
+                </span>
+              </a>
+              {pkg.metadata.upstreamVersion && (
+                <div className="inline-block text-base text-content-2 dark:text-content-2d ml-4">
+                  <span className="text-sm">Latest Upstream Version:</span>
+                  <TagIcon className="inline-block w-4 h-4 ml-1 mr-1" />
+                  <span>{pkg.metadata.upstreamVersion}</span>
+                  {pkg.metadata.isOutdated && (
+                    <span
+                      className={clsx(
+                        "ml-2 px-2 py-1 text-xs",
+                        "text-base-0 bg-warn rounded-full",
+                      )}
+                    >
+                      Outdated
+                    </span>
+                  )}
+                </div>
               )}
+            </div>
+          )}
+          {pkg.error === null && pkg.metadata?.homepage && (
+            <p>
+              <a
+                href={pkg.metadata.homepage}
+                target="_blank"
+                rel="noopener"
+                className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
+              >
+                <LinkIcon className="inline-block w-5 h-5 mr-2" />
+                <span>{pkg.metadata.homepage}</span>
+              </a>
             </p>
-            {pkg.error === null && pkg.metadata?.repo && (
-              <div className="text-lg">
-                <a
-                  href={`https://github.com/${pkg.metadata.repo.owner}/${pkg.metadata.repo.name}`}
-                  target="_blank"
-                  rel="noopener"
-                  className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
-                >
-                  <GithubIcon className="inline-block w-5 h-5 mr-2" />
-                  <span>
-                    {pkg.metadata.repo.owner}/{pkg.metadata.repo.name}
-                  </span>
-                </a>
-                {pkg.metadata.upstreamVersion && (
-                  <div className="inline-block text-base text-content-2 dark:text-content-2d ml-4">
-                    <span className="text-sm">Latest Upstream Version:</span>
-                    <TagIcon className="inline-block w-4 h-4 ml-1 mr-1" />
-                    <span>{pkg.metadata.upstreamVersion}</span>
-                    {pkg.metadata.isOutdated && (
-                      <span
-                        className={clsx(
-                          "ml-2 px-2 py-1 text-xs",
-                          "text-base-0 bg-warn rounded-full",
-                        )}
-                      >
-                        Outdated
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-            {pkg.error === null && pkg.metadata?.homepage && (
-              <p>
-                <a
-                  href={pkg.metadata.homepage}
-                  target="_blank"
-                  rel="noopener"
-                  className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
-                >
-                  <LinkIcon className="inline-block w-5 h-5 mr-2" />
-                  <span>{pkg.metadata.homepage}</span>
-                </a>
-              </p>
-            )}
-          </div>
-          <div className="text-sm italic text-content-2 dark:text-content-2d mt-3">
-            Package metadata is not taken from the WrapDB database and may be
-            inaccurate. If you find any problems, search an issue or PR{" "}
-            <a
-              href={`https://github.com/na-trium-144/wrapdb-browser/issues?q=is%3Aopen+${pkg.name}`}
-              target="_blank"
-              rel="noopener"
-              className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
-            >
-              on GitHub
-            </a>
-            , or file a new one.
-          </div>
-        </header>
+          )}
+        </div>
+        <div className="text-sm italic text-content-2 dark:text-content-2d mt-3">
+          Package metadata is not taken from the WrapDB database and may be
+          inaccurate. If you find any problems, search an issue or PR{" "}
+          <a
+            href={`https://github.com/na-trium-144/wrapdb-browser/issues?q=is%3Aopen+${pkg.name}`}
+            target="_blank"
+            rel="noopener"
+            className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
+          >
+            on GitHub
+          </a>
+          , or file a new one.
+        </div>
 
         {pkg.error === null && (
-          <main className="space-y-6">
+          <main className="mt-6 space-y-6">
             <h2 className="flex flex-row items-baseline gap-4">
               <span className="text-xl font-semibold">Version:</span>
               <select
