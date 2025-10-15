@@ -1,8 +1,9 @@
 import { useLoaderData, useSearchParams, Link } from "react-router";
 import type { Route } from "./+types/search";
 import { fetchReleases, fetchWrap, type WrapDbPackageData } from "~/utils/wrapdb";
-import { fetchMetadata } from "~/utils/metadata";
+import { fetchMetadata, type PackageMetadata } from "~/utils/metadata";
 import clsx from "clsx";
+import { GithubIcon } from "~/components/icon";
 
 // --- Types ---
 type PackageResult = {
@@ -10,7 +11,7 @@ type PackageResult = {
   latest_version: string;
   dependency_names: string[];
   program_names: string[];
-  description?: string;
+  metadata?: PackageMetadata;
 };
 
 // --- Scoring Logic ---
@@ -72,7 +73,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       .sort((a, b) => b.score - a.score)
       .map((item) => item.pkg);
 
-    // Fetch metadata (description) for each search result
+    // Fetch metadata (description, repo, isOutdated) for each search result
     const resultsWithMetadata: PackageResult[] = await Promise.all(
       searchResults.map(async (pkg) => {
         try {
@@ -85,7 +86,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
             );
             return {
               ...pkg,
-              description: metadata.description,
+              metadata,
             };
           }
         } catch (error) {
@@ -93,7 +94,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         }
         return {
           ...pkg,
-          description: undefined,
+          metadata: undefined,
         };
       }),
     );
@@ -166,14 +167,37 @@ export default function Search() {
                     <h2 className="text-2xl font-semibold text-link dark:text-linkd">
                       {pkg.name}
                     </h2>
-                    {pkg.description && (
-                      <p className="text-sm text-content-2 dark:text-content-2d mt-2">
-                        {pkg.description}
+                    <p className="text-sm text-content-2 dark:text-content-2d mt-1">
+                      Latest Version:{" "}
+                      <span
+                        className={clsx(
+                          pkg.metadata?.isOutdated && "bg-warn px-1 rounded",
+                        )}
+                      >
+                        {pkg.latest_version}
+                      </span>
+                    </p>
+                    {pkg.metadata?.repo && (
+                      <p className="text-sm mt-2">
+                        <a
+                          href={`https://github.com/${pkg.metadata.repo.owner}/${pkg.metadata.repo.name}`}
+                          target="_blank"
+                          rel="noopener"
+                          className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline inline-flex items-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <GithubIcon className="inline-block w-4 h-4 mr-1" />
+                          <span>
+                            {pkg.metadata.repo.owner}/{pkg.metadata.repo.name}
+                          </span>
+                        </a>
                       </p>
                     )}
-                    <p className="text-sm text-content-2 dark:text-content-2d mb-2">
-                      Latest Version: {pkg.latest_version}
-                    </p>
+                    {pkg.metadata?.description && (
+                      <p className="text-sm text-content-2 dark:text-content-2d mt-2 line-clamp-2">
+                        {pkg.metadata.description}
+                      </p>
+                    )}
                     {renderNameList("Dependencies", pkg.dependency_names)}
                     {renderNameList("Programs", pkg.program_names)}
                   </div>
