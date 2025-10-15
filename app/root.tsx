@@ -36,14 +36,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
         <ThemeScript />
       </head>
-      <body className={clsx(
-        "bg-base-0 dark:bg-base-0d text-content-0 dark:text-content-0d",
-        "text-content-1 dark:text-content-1d",
-        "min-h-screen flex flex-col items-center justify-start",
-        "pt-20 pb-10 px-4 sm:px-6 lg:px-8",
-      )}>
+      <body
+        className={clsx(
+          "bg-base-0 dark:bg-base-0d text-content-0 dark:text-content-0d",
+          "text-content-1 dark:text-content-1d",
+          "min-h-screen flex flex-col items-center justify-start",
+          "pt-20 pb-10 px-4 sm:px-6 lg:px-8",
+        )}
+      >
         <ThemeToggle />
         {children}
+        <div className="flex-1" />
+        <footer className="mt-8 text-sm text-center text-content-2 dark:text-content-2d">
+          <p>
+            This site is not affiliated with the official WrapDB or Meson
+            projects.
+          </p>
+          <p>Meson is a registered trademark of Jussi Pakkanen.</p>
+        </footer>
         <ScrollRestoration />
         <Scripts />
       </body>

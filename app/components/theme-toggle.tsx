@@ -27,7 +27,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       className={clsx(
         "fixed top-4 right-4 p-2 rounded-lg",
-        "bg-base1 dark:bg-base-1d text-content-2 dark:text-content-2d",
+        "bg-base-1 dark:bg-base-1d text-content-2 dark:text-content-2d",
         "hover:bg-base-2 dark:hover:bg-base-2d",
         "transition-colors z-50 cursor-pointer",
       )}

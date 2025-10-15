@@ -160,16 +160,35 @@ export default function Home() {
             you need.
           </Section>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Section title="What is WrapDB?">
-              WrapDB is the official package repository for the Meson build
-              system. It provides a collection of build definitions (wraps) for
-              various third-party libraries.
-            </Section>
-
             <Section title="What is Meson?">
               Meson is an open-source build system designed to be both extremely
               fast and as user-friendly as possible. It uses a simple,
               non-turing-complete DSL to define builds.
+              <p className="mt-1">
+                <a
+                  href="https://mesonbuild.com/"
+                  target="_blank"
+                  rel="noopener"
+                  className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
+                >
+                  Learn more →
+                </a>
+              </p>
+            </Section>
+            <Section title="What is WrapDB?">
+              WrapDB is the official package repository for the Meson build
+              system. It provides a collection of build definitions (wraps) for
+              various third-party libraries.
+              <p className="mt-1">
+                <a
+                  href="https://mesonbuild.com/Wrap-dependency-system-manual.html"
+                  target="_blank"
+                  rel="noopener"
+                  className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
+                >
+                  Learn more →
+                </a>
+              </p>
             </Section>
           </div>
         </main>
