@@ -5,7 +5,7 @@ export type PackageMetadata = {
   homepage?: string;
   repo?: GitHubRepository;
   license?: string;
-  upstreamVersion?: string;  // latest upstream version detected from the source repo
+  upstreamVersion?: string; // latest upstream version detected from the source repo
   isOutdated?: boolean; // whether the wrap is outdated compared to the upstream version
 };
 
@@ -24,11 +24,11 @@ export async function fetchMetadata(
   // so remove the suffix here.
   wrapLatestVersion = wrapLatestVersion.split("-")[0];
 
-  if (sourceUrl.startsWith("https://github.com")) {
+  // Add more source URL handlers (e.g., GitLab, etc.) or some custom logic for specific packages.
+  // https://github.com/na-trium-144/wrapdb-browser/issues/12
+  if (/^(codeload\.)?github.com$/.test(new URL(sourceUrl).hostname)) {
     return fetchMetadataGitHub(sourceUrl, wrapLatestVersion, env);
   }
-  // Add more source URL handlers here in the future (e.g., GitLab, etc.)
-  // Or, some custom logic for specific packages
 
   return undefined;
 }

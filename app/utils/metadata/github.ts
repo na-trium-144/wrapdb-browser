@@ -31,11 +31,17 @@ export async function fetchMetadataGitHub(
   // alpha, beta などを含むタグは除外する (手動でパターンを指定している)
   let currentTagName: string | undefined = undefined;
   if (sourceUrl.split("/")[7] === "tags") {
+    // owner/repo/archive/refs/tags/v1.2.3.zip
     currentTagName = sourceUrl.split("/")[8].replace(/\.zip$|\.tar.*$/, "");
   } else if (sourceUrl.split("/")[5] === "releases") {
+    // owner/repo/releases/download/v1.2.3/source.zip
     currentTagName = sourceUrl.split("/")[7];
   } else if (sourceUrl.split("/")[5] === "archive") {
+    // owner/repo/archive/v1.2.3.zip
     currentTagName = sourceUrl.split("/")[6].replace(/\.zip$|\.tar.*$/, "");
+  } else if (sourceUrl.split("/")[5] === "tar.gz") {
+    // codeload.github.com/owner/repo/tar.gz/v1.2.3
+    currentTagName = sourceUrl.split("/")[6];
   }
   let upstreamVersion: string | undefined = undefined;
   let isOutdated: boolean | undefined = undefined;
@@ -66,7 +72,7 @@ export async function fetchMetadataGitHub(
         .map((tag) => tag.name)
         .filter((tag) => !/alpha|beta|rc|dev|test|snapshot/i.test(tag))
         .find((tag) =>
-          new RegExp("^" + lookupVersionPrefix + "[0-9]+\\.+").test(
+          new RegExp("^" + lookupVersionPrefix + "[0-9]+").test(
             tag.replaceAll(/[^a-zA-Z0-9]/g, "."),
           ),
         );

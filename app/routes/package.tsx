@@ -233,16 +233,16 @@ export default function PackageDetailPage() {
         </div>
         <div className="text-sm italic text-content-2 dark:text-content-2d mt-3">
           Package metadata is not taken from the WrapDB database and may be
-          inaccurate. If you find any problems, search an issue or PR{" "}
+          inaccurate. See{" "}
           <a
-            href={`https://github.com/na-trium-144/wrapdb-browser/issues?q=is%3Aopen+${pkg.name}`}
+            href="https://github.com/na-trium-144/wrapdb-browser/issues/12"
             target="_blank"
             rel="noopener"
             className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
           >
-            on GitHub
-          </a>
-          , or file a new one.
+            this issue
+          </a>{" "}
+          for details.
         </div>
 
         {pkg.error === null && (
