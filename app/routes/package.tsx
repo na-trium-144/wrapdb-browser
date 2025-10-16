@@ -25,38 +25,16 @@ type PackageDetail =
       packageData: WrapDbPackageData;
       wrapFileData: WrapFileData;
       metadata?: PackageMetadata;
+      title: string;
+      description: string;
     }
   | {
       name: string;
       version: string;
       error: "notFound" | "error";
+      title: string;
+      description: string;
     };
-
-// --- Meta ---
-export function meta({ data }: Route.MetaArgs) {
-  if (!data || "error" in data) {
-    return [
-      { title: "Package Not Found - WrapDB Browser" },
-      {
-        name: "description",
-        content: "The requested package could not be found in WrapDB.",
-      },
-    ];
-  }
-
-  const pkg = data as PackageDetail & { error: null };
-  const description = pkg.metadata?.description 
-    ? pkg.metadata.description 
-    : `${pkg.name} ${pkg.version} - Meson build system wrap file`;
-
-  return [
-    { title: `${pkg.name} ${pkg.version} - WrapDB Browser` },
-    {
-      name: "description",
-      content: description,
-    },
-  ];
-}
 
 // --- Data Loader ---
 export async function loader({
@@ -75,6 +53,8 @@ export async function loader({
         name: name,
         version: version,
         error: "notFound",
+        title: "Package Not Found - WrapDB Browser",
+        description: "The requested package could not be found in WrapDB.",
       };
     }
 
@@ -82,7 +62,7 @@ export async function loader({
 
     // 選択したバージョンによらず常に最新のものを取得
     const latestWrapFileData = fetchWrap(name, packageData.versions[0]);
-    const metadata = latestWrapFileData.then((latestWrapFileData) =>
+    const metadata = await latestWrapFileData.then((latestWrapFileData) =>
       fetchMetadata(
         latestWrapFileData.sourceUrl,
         packageData.versions[0],
@@ -96,7 +76,11 @@ export async function loader({
       error: null,
       packageData,
       wrapFileData: await wrapFileData,
-      metadata: await metadata,
+      metadata: metadata,
+      title: `${name} ${version} - WrapDB Browser`,
+      description: metadata?.description
+        ? metadata.description
+        : `${name} ${version}`,
     };
   } catch (error) {
     console.error("Failed to fetch package data:", error);
@@ -104,6 +88,9 @@ export async function loader({
       name: name,
       version: version,
       error: "error",
+      title: "Error - WrapDB Browser",
+      description:
+        "An error occurred while fetching package information. Please try again later.",
     };
   }
 }
@@ -145,6 +132,8 @@ export default function PackageDetailPage() {
 
   return (
     <>
+      <title>{pkg.title}</title>
+      <meta name="description" content={pkg.description} />
       <Header />
       <div className="mt-24 w-full max-w-4xl mx-auto">
         <h1 className="text-5xl font-bold mt-4 text-content-0 dark:text-content-0d">
