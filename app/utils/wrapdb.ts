@@ -20,12 +20,16 @@ export type WrapFileData = {
 
 // --- API Functions ---
 export async function fetchReleases(): Promise<WrapDbPackages> {
-  const res = await fetch("https://wrapdb.mesonbuild.com/v2/releases.json", {
-    cf: {
-      cacheTtl: 300,
-      cacheEverything: true,
+  const res = await fetch(
+    // "https://wrapdb.mesonbuild.com/v2/releases.json",
+    "https://raw.githubusercontent.com/mesonbuild/wrapdb/master/releases.json",
+    {
+      cf: {
+        cacheTtl: 300,
+        cacheEverything: true,
+      },
     },
-  });
+  );
   if (!res.ok) throw new Error(`Failed to fetch releases: ${res.statusText}`);
   return await res.json();
 }
@@ -35,7 +39,8 @@ export async function fetchWrap(
   version: string,
 ): Promise<WrapFileData> {
   const res = await fetch(
-    `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/${packageName}.wrap`,
+    // `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/${packageName}.wrap`,
+    `https://github.com/mesonbuild/wrapdb/releases/download/${packageName}_${version}/${packageName}.wrap`,
     {
       cf: {
         cacheTtl: 31536000,
@@ -77,7 +82,8 @@ export async function fetchPatch(
   version: string,
 ): Promise<Response> {
   const res = await fetch(
-    `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/get_patch`,
+    // `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/get_patch`,
+    `https://github.com/mesonbuild/wrapdb/releases/download/${packageName}_${version}/${packageName}_${version}_patch.zip`,
     {
       cf: {
         cacheTtl: 31536000,
