@@ -22,7 +22,7 @@ export function CopyButton({ textToCopy }: CopyButtonProps) {
     <button
       onClick={handleCopy}
       className={clsx(
-        "px-3 py-1.5 text-sm rounded-md",
+        "px-3 py-2 text-sm rounded-md",
         "bg-link hover:bg-linkh text-base-0 transition-colors",
         "flex items-center gap-2 cursor-pointer",
       )}
@@ -67,23 +67,5 @@ export function CopyButton({ textToCopy }: CopyButtonProps) {
         </>
       )}
     </button>
-  );
-}
-
-export function CodeBlockWithCopyButton({ code }: { code: string }) {
-  return (
-    <div className="relative">
-      <div className="absolute top-0 right-0">
-        <CopyButton textToCopy={code} />
-      </div>
-      <pre
-        className={clsx(
-          "bg-base-2 dark:bg-base-2d p-4 rounded-md text-sm",
-          "text-content-1 dark:text-content-1d max-h-64 overflow-auto",
-        )}
-      >
-        <code>{code}</code>
-      </pre>
-    </div>
   );
 }

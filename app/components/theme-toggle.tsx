@@ -1,35 +1,18 @@
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { useTheme } from "../utils/theme";
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-
-  useEffect(() => {
-    // Get initial theme from localStorage or system preference
-    const savedTheme = localStorage.getItem("theme");
-    const initialTheme =
-      savedTheme ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light");
-    setTheme(initialTheme as "light" | "dark");
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-  };
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <button
       onClick={toggleTheme}
       className={clsx(
-        "fixed top-4 right-4 p-2 rounded-lg",
-        "bg-base1 dark:bg-base-1d text-content-2 dark:text-content-2d",
+        "p-2 rounded-lg",
+        "bg-base-1 dark:bg-base-1d",
+        "text-content-2 dark:text-content-2d",
         "hover:bg-base-2 dark:hover:bg-base-2d",
-        "transition-colors z-50 cursor-pointer",
+        "z-50 cursor-pointer",
       )}
       aria-label="Toggle theme"
       title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}

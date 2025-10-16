@@ -9,9 +9,9 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { ThemeScript } from "./components/theme-script";
-import { ThemeToggle } from "./components/theme-toggle";
 import clsx from "clsx";
+import { Footer } from "./components/footer";
+import { ThemeProvider } from "./utils/theme";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -36,16 +36,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        <ThemeScript />
       </head>
-      <body className={clsx(
-        "bg-base-0 dark:bg-base-0d text-content-0 dark:text-content-0d",
-        "text-content-1 dark:text-content-1d",
-        "min-h-screen flex flex-col items-center justify-start",
-        "pt-20 pb-10 px-4 sm:px-6 lg:px-8",
-      )}>
-        <ThemeToggle />
+      <body
+        className={clsx(
+          "bg-base-0 dark:bg-base-0d text-content-0 dark:text-content-0d",
+          "text-content-1 dark:text-content-1d",
+          "min-h-screen flex flex-col items-center justify-start",
+          "pb-10 px-4 sm:px-6 lg:px-8",
+        )}
+      >
+        {/*
+          <Header />
+          <div className="h-20" />
+        */}
         {children}
+        <div className="flex-1" />
+        <Footer />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -54,7 +60,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <ThemeProvider>
+      <Outlet />
+    </ThemeProvider>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

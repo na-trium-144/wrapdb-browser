@@ -1,5 +1,4 @@
 import * as INI from "ini";
-import { fetchWithCache } from "./cache";
 
 // --- Types ---
 export type WrapDbPackageData = {
@@ -21,10 +20,12 @@ export type WrapFileData = {
 
 // --- API Functions ---
 export async function fetchReleases(): Promise<WrapDbPackages> {
-  const res = await fetchWithCache(
-    "https://wrapdb.mesonbuild.com/v2/releases.json",
-    "s-maxage=300",
-  );
+  const res = await fetch("https://wrapdb.mesonbuild.com/v2/releases.json", {
+    cf: {
+      cacheTtl: 300,
+      cacheEverything: true,
+    },
+  });
   if (!res.ok) throw new Error(`Failed to fetch releases: ${res.statusText}`);
   return await res.json();
 }
@@ -33,9 +34,14 @@ export async function fetchWrap(
   packageName: string,
   version: string,
 ): Promise<WrapFileData> {
-  const res = await fetchWithCache(
+  const res = await fetch(
     `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/${packageName}.wrap`,
-    "immutable",
+    {
+      cf: {
+        cacheTtl: 31536000,
+        cacheEverything: true,
+      },
+    },
   );
   if (!res.ok) throw new Error(`Failed to fetch wrap file: ${res.statusText}`);
   const wrapIni = INI.parse(await res.text());
@@ -70,9 +76,14 @@ export async function fetchPatch(
   packageName: string,
   version: string,
 ): Promise<Response> {
-  const res = await fetchWithCache(
+  const res = await fetch(
     `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/get_patch`,
-    "immutable",
+    {
+      cf: {
+        cacheTtl: 31536000,
+        cacheEverything: true,
+      },
+    },
   );
   if (!res.ok) throw new Error(`Failed to fetch patch: ${res.statusText}`);
   return res;
