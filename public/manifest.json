@@ -1,0 +1,17 @@
+{
+  "name": "WrapDB Browser",
+  "short_name": "WrapDB",
+  "description": "An unofficial browser for WrapDB packages for Meson build system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007acc",
+  "icons": [
+    {
+      "src": "/meson-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

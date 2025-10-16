@@ -29,7 +29,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const offset = (page - 1) * limit;
 
   if (!query) {
-    return { results: [], total: 0, page, limit };
+    return { results: [], total: 0, page, limit, query: "" };
   }
 
   try {
@@ -78,10 +78,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       total,
       page,
       limit,
+      query,
     };
   } catch (error) {
     console.error("Failed to search packages:", error);
-    return { results: [], total: 0, page, limit };
+    return { results: [], total: 0, page, limit, query };
   }
 }
 
@@ -113,6 +114,21 @@ function getPaginationItems(currentPage: number, totalPages: number) {
   }
 
   return rangeWithDots;
+}
+
+// --- Meta ---
+export function meta({ data }: Route.MetaArgs) {
+  const query = data?.query || "";
+  
+  return [
+    { title: query ? `Search: ${query} - WrapDB Browser` : "Search - WrapDB Browser" },
+    {
+      name: "description",
+      content: query 
+        ? `Search results for "${query}" in WrapDB packages for Meson build system.`
+        : "Search WrapDB packages for Meson build system.",
+    },
+  ];
 }
 
 // --- Component ---

@@ -32,6 +32,32 @@ type PackageDetail =
       error: "notFound" | "error";
     };
 
+// --- Meta ---
+export function meta({ data }: Route.MetaArgs) {
+  if (!data || "error" in data) {
+    return [
+      { title: "Package Not Found - WrapDB Browser" },
+      {
+        name: "description",
+        content: "The requested package could not be found in WrapDB.",
+      },
+    ];
+  }
+
+  const pkg = data as PackageDetail & { error: null };
+  const description = pkg.metadata?.description 
+    ? pkg.metadata.description 
+    : `${pkg.name} ${pkg.version} - Meson build system wrap file`;
+
+  return [
+    { title: `${pkg.name} ${pkg.version} - WrapDB Browser` },
+    {
+      name: "description",
+      content: description,
+    },
+  ];
+}
+
 // --- Data Loader ---
 export async function loader({
   params,
