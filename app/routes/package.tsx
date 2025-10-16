@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useLoaderData, useNavigate } from "react-router";
 import type { Route } from "./+types/package";
 import {
@@ -15,6 +15,11 @@ import useSWR from "swr";
 import JSZip from "jszip";
 import { Header } from "~/components/header";
 import { CodeBlock } from "~/components/code-block";
+import {
+  parseMesonOptions,
+  type MesonOption,
+  type MesonValue,
+} from "~/utils/optionParser";
 
 // --- Types ---
 type PackageDetail =
@@ -129,6 +134,16 @@ export default function PackageDetailPage() {
       revalidateOnFocus: false,
     },
   );
+
+  const options = useMemo<MesonOption[]>(() => {
+    if (typeof patchSWR.data?.["meson_options.txt"] === "string") {
+      return parseMesonOptions(patchSWR.data["meson_options.txt"]);
+    } else if (typeof patchSWR.data?.["meson.options"] === "string") {
+      return parseMesonOptions(patchSWR.data["meson.options"]);
+    } else {
+      return [];
+    }
+  }, [patchSWR.data]);
 
   return (
     <>
@@ -315,6 +330,35 @@ export default function PackageDetailPage() {
               </CodeBlock>
             </Section>
 
+            {pkg.wrapFileData.hasPatchUrl && (
+              <Section title="Project Options">
+                {patchSWR.data ? (
+                  options.length >= 1 ? (
+                    <>
+                      <p className="text-sm italic">
+                        Bold values indicate the default value.
+                      </p>
+                      <ul className="list-disc list-outside pl-4 mt-1 space-y-1">
+                        {options.map((option) => (
+                          <OptionItem
+                            key={option.name}
+                            pkgName={pkg.name}
+                            option={option}
+                          />
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <p>No options available in this package.</p>
+                  )
+                ) : patchSWR.error ? (
+                  <p>Could not load patch files.</p>
+                ) : (
+                  patchSWR.isLoading && <p>Loading patch files...</p>
+                )}
+              </Section>
+            )}
+
             <Section title="Patch Files Preview">
               {!pkg.wrapFileData.hasPatchUrl ? (
                 <p>No patch files needed for this package.</p>
@@ -333,6 +377,195 @@ export default function PackageDetailPage() {
   );
 }
 
+function OptionItem({
+  pkgName,
+  option,
+}: {
+  pkgName: string;
+  option: MesonOption;
+}) {
+  let value: MesonValue | MesonValue[];
+  let choices: MesonValue[] | null = null;
+  switch (option.type) {
+    case "boolean":
+      value = option.value ?? true;
+      choices = [true, false];
+      break;
+    case "string":
+      value = option.value ?? "";
+      break;
+    case "combo":
+      value = option.value ?? option.choices?.[0] ?? "";
+      choices = option.choices ?? [];
+      break;
+    case "integer":
+      value = option.value ?? 0;
+      break;
+    case "array":
+      value = option.value ?? [];
+      break;
+    case "feature":
+      value = option.value ?? "auto";
+      choices = ["auto", "enabled", "disabled"];
+      break;
+    default:
+      console.warn(`Unknown option type: ${option.type}`);
+      value = option.value || "";
+  }
+  return (
+    <li>
+      <p className="">
+        <span className="text-base">{pkgName}</span>
+        <span className="text-base mx-0.5">:</span>
+        <span className="text-lg font-semibold">{option.name}</span>
+        {/*<span
+          className={clsx(
+            "inline-block ml-1 px-1.5 py-0.5 text-xs rounded-full",
+            "bg-base-2 text-content-1 dark:bg-base-2d dark:text-content-1d",
+            "border border-base-3 dark:border-base-3d",
+          )}
+        >
+          {option.type}
+        </span>*/}
+        {option.yield && (
+          <span
+            className={clsx(
+              "inline-block ml-1 px-1.5 py-0.5 text-xs rounded-full",
+              "bg-base-2 text-content-1 dark:bg-base-2d dark:text-content-1d",
+              "border border-base-3 dark:border-base-3d",
+            )}
+          >
+            yield
+          </span>
+        )}
+        <span className="ml-1 mr-1">=</span>
+        {choices ? (
+          choices.map((choice, index) => (
+            <>
+              {index > 0 && (
+                <span key={index} className="mx-1 text-sm">
+                  /
+                </span>
+              )}
+              <DisplayMesonValue
+                value={choice}
+                className={clsx(choice === value ? "font-bold" : "text-sm!")}
+              />
+            </>
+          ))
+        ) : (
+          <span className="ml-1 px-2 py-1 text-sm bg-base-2 dark:bg-base-2d rounded-full">
+            {String(value)}
+          </span>
+        )}
+        {(typeof option.min === "number" || typeof option.max === "number") && (
+          <span className="font-sans text-sm ml-2">
+            (min: {option.min}, max: {option.max})
+          </span>
+        )}
+      </p>
+      {option.description && <p className="ml-4">{option.description}</p>}
+      <p className="ml-4 text-sm italic">
+        {option.deprecated === true ? (
+          "This option is deprecated."
+        ) : typeof option.deprecated === "string" ? (
+          `This option is deprecated. Use ${option.deprecated}`
+        ) : Array.isArray(option.deprecated) ? (
+          <>
+            {option.deprecated.length > 1 ? "The values " : "The value "}
+            {option.deprecated.map((v, i) => (
+              <span key={i}>
+                {i > 0 && <span>,</span>}
+                <DisplayMesonValue value={v} />
+              </span>
+            ))}
+            {option.deprecated.length > 1 ? " are " : " is "}
+            deprecated.
+          </>
+        ) : typeof option.deprecated === "object" ? (
+          <>
+            The deprecated
+            {Object.keys(option.deprecated).length > 1 ? " values " : " value "}
+            {Object.keys(option.deprecated).map((v, i) => (
+              <span key={i}>
+                {i > 0 && <span>,</span>}
+                <DisplayMesonValue value={v} />
+              </span>
+            ))}{" "}
+            will be remapped to{" "}
+            {Object.values(option.deprecated).map((v, i) => (
+              <span key={i}>
+                {i > 0 && <span>,</span>}
+                <DisplayMesonValue value={v} />
+              </span>
+            ))}
+            {Object.keys(option.deprecated).length > 1 ? " respectively" : ""}.
+          </>
+        ) : null}
+      </p>
+    </li>
+  );
+}
+function DisplayMesonValue({
+  value,
+  className,
+}: {
+  value: MesonValue;
+  className?: string;
+}) {
+  if (typeof value === "boolean") {
+    return (
+      <span
+        className={clsx(
+          "font-mono text-base text-amber-600 dark:text-amber-500",
+          className,
+        )}
+      >
+        {value ? "true" : "false"}
+      </span>
+    );
+  } else if (typeof value === "number") {
+    return (
+      <span
+        className={clsx(
+          "font-mono text-base text-amber-600 dark:text-amber-500",
+          className,
+        )}
+      >
+        {String(value)}
+      </span>
+    );
+  } else if (typeof value === "string") {
+    if (value === "auto" || value === "enabled" || value === "disabled") {
+      // todo: 'auto' という文字列型の値も理論上はあり得るので、feature型引数かどうかで分岐するべき
+      return (
+        <span
+          className={clsx(
+            "font-mono text-base text-blue-500 dark:text-blue-400",
+            className,
+          )}
+        >
+          {value}
+        </span>
+      );
+    } else {
+      return (
+        <>
+          <span className="select-none">'</span>
+          <span
+            className={clsx(
+              "font-mono text-base text-green-600 dark:text-green-500",
+              className,
+            )}
+          >
+            {value}
+          </span>
+          <span className="select-none">'</span>
+        </>
+      );
+    }
+  }
+}
 function PatchFilePreview({ files }: { files: Record<string, string> }) {
   const sortedKeys = Object.keys(files);
   sortedKeys.sort();
@@ -365,7 +598,9 @@ function PatchFilePreview({ files }: { files: Record<string, string> }) {
           className="h-full"
           divClassName="h-full"
           language={
-            /\/?meson.build$|^meson_options.txt$/.test(selectedFile)
+            /\/?meson.build$|^meson_options.txt$|^meson.options$/.test(
+              selectedFile,
+            )
               ? "meson"
               : "text"
           }
