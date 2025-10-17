@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import type { Suggestion } from "~/routes/search_suggestions";
+import { Spinner } from "./spinner";
 
 type SearchBoxProps = {
   className?: string;
@@ -18,6 +19,7 @@ export function SearchBox({
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const navigate = useNavigate();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const suggestionController = useRef(new AbortController());
   useEffect(() => {
@@ -55,7 +57,10 @@ export function SearchBox({
     e.preventDefault();
     if (query.trim()) {
       setSuggestions([]);
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+      setIsNavigating(true);
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`)!.then(() =>
+        setIsNavigating(false),
+      );
     }
   };
 
@@ -131,9 +136,16 @@ export function SearchBox({
             "hover:bg-linkh focus:bg-linkh",
             "focus:outline-none focus:ring-2 focus:ring-link dark:focus:ring-linkd",
             "transition-colors cursor-pointer",
+            "disabled:bg-base-3 hover:disabled:bg-base-3 disabled:cursor-not-allowed",
+            "dark:disabled:bg-base-3d hover:dark:disabled:bg-base-3d",
+            "relative",
           )}
+          disabled={isNavigating}
         >
-          {submitContent}
+          {isNavigating && <Spinner />}
+          <span className={clsx(isNavigating && "invisible")}>
+            {submitContent}
+          </span>
         </button>
       </form>
     </div>
