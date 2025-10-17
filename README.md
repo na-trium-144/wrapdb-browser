@@ -1,79 +1,56 @@
-# Welcome to React Router!
+# wrapdb-browser
 
-A modern, production-ready template for building full-stack React applications using React Router.
+Unofficial browser for WrapDB packages.
+https://wrapdb.natrium144.org/
 
 ## Features
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+### Searching packages
 
-## Getting Started
+- Search by package name or dependency/program names.
+- Displays upstream repositories and descriptions (may be incomplete for some packages).
 
-### Installation
+![search](.github/search.png)
 
-Install the dependencies:
+### Viewing package details
 
-```bash
-npm install
+- Copy-and-paste installation and usage guide.
+- Browse patch files without installation or downloads.
+
+![package_usage](.github/package1.png)
+![package_detail](.github/package2.png)
+
+## Development
+
+Install Node.js.
+
+Put the following environment variables in a `.env` file:
+
+```env
+ENABLE_INITDB=1
 ```
 
-### Development
+Install dependencies, create database and start the development server:
 
-Start the development server with HMR:
-
-```bash
+```sh
+npm ci
+npx wrangler d1 migrations apply wrapdb --local
 npm run dev
 ```
 
-Your application will be available at `http://localhost:5173`.
+Initialize database by accessing `http://localhost:5173/init_db` in yout browser first.
+Then you can access the main page at `http://localhost:5173/`.
 
-## Previewing the Production Build
+If you get ratelimited by GitHub, put your GitHub personal access token in the `.env` file:
 
-Preview the production build locally:
-
-```bash
-npm run preview
+```env
+GITHUB_PAT=your_token
 ```
 
-## Building for Production
+PRs are welcome!
 
-Create a production build:
+## Disclaimer
 
-```bash
-npm run build
-```
+This project is not affiliated with the official WrapDB or Meson projects.
 
-## Deployment
-
-Deployment is done using the Wrangler CLI.
-
-To build and deploy directly to production:
-
-```sh
-npm run deploy
-```
-
-To deploy a preview URL:
-
-```sh
-npx wrangler versions upload
-```
-
-You can then promote a version to production after verification or roll it out progressively.
-
-```sh
-npx wrangler versions deploy
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
+The logo of this project is not based on the official Meson logo and is not affiliated with or endorsed by the Meson development team.
