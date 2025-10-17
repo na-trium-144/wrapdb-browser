@@ -6,11 +6,31 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "wrapdb-browser",
 	"compatibility_date": "2025-04-04",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
 	"main": "./workers/app.ts",
 	"observability": {
 		"enabled": true
-	}
+	},
+	"triggers": {
+		"crons": [
+			"*/5 * * * *"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "wrapdb",
+			"database_id": "af712207-7d2a-45c9-a512-8ebeae344899"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "wrapdb_kv",
+			"id": "262c9f98ce304c48b0e9e8ae815a5a53"
+		}
+	]
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

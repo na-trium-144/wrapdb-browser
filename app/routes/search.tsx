@@ -1,24 +1,14 @@
 import { useLoaderData, useSearchParams, Link } from "react-router";
 import type { Route } from "./+types/search";
 import {
-  fetchReleases,
-  fetchWrap,
-  type WrapDbPackageData,
-  type WrapFileData,
-} from "~/utils/wrapdb";
-import { fetchMetadata, type PackageMetadata } from "~/utils/metadata";
+  searchPackagesFromDB,
+  type PackageFromDB,
+  getOrUpdatePackageInDB,
+} from "~/utils/d1";
 import clsx from "clsx";
 import { GithubIcon } from "~/components/icon";
-import { calculateScore } from "~/utils/search";
 import { Header } from "~/components/header";
-
-// --- Types ---
-type PackageResult = {
-  name: string;
-  packageData: WrapDbPackageData;
-  wrapFileData?: WrapFileData;
-  metadata?: PackageMetadata;
-};
+import { calculateScore } from "~/utils/search";
 
 // --- Data Loader ---
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -33,49 +23,28 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   }
 
   try {
-    const packages = await fetchReleases();
-
-    const searchResults = Object.entries(packages)
-      .map(([name, data]) => ({
-        score: calculateScore(name, data, query),
-        name,
-        pkg: data,
-      }))
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score);
-
-    const total = searchResults.length;
-    const paginatedResults = searchResults.slice(offset, offset + limit);
+    const db = context.cloudflare.env.DB;
+    const results = await searchPackagesFromDB(db, query);
+    const sortedResults = await Promise.all(
+      results
+        .map((pkg) => ({ pkg, score: calculateScore(pkg, query) }))
+        .sort((a, b) => b.score - a.score)
+        .map(({ pkg }) => pkg)
+        .slice(offset, offset + limit)
+        .map(
+          async (pkg) =>
+            (await getOrUpdatePackageInDB(
+              db,
+              pkg.name,
+              context.cloudflare.env,
+              pkg,
+            )) ?? pkg,
+        ),
+    );
 
     return {
-      results: (await Promise.all(
-        paginatedResults.map(async ({ name, pkg }) => {
-          try {
-            if (pkg.versions.length === 0)
-              throw new Error("No versions available");
-            const latestVersion = pkg.versions[0];
-            const wrapData = await fetchWrap(name, latestVersion);
-            const metadata = await fetchMetadata(
-              wrapData.sourceUrl,
-              latestVersion,
-              context.cloudflare.env,
-            );
-            return {
-              name,
-              packageData: pkg,
-              wrapFileData: wrapData,
-              metadata,
-            };
-          } catch (error) {
-            console.error(`Failed to fetch metadata for ${name}:`, error);
-            return {
-              name,
-              packageData: pkg,
-            };
-          }
-        }),
-      )) satisfies PackageResult[],
-      total,
+      results: sortedResults,
+      total: sortedResults.length,
       page,
       limit,
       query,
@@ -119,12 +88,16 @@ function getPaginationItems(currentPage: number, totalPages: number) {
 // --- Meta ---
 export function meta({ data }: Route.MetaArgs) {
   const query = data?.query || "";
-  
+
   return [
-    { title: query ? `Search: ${query} - WrapDB Browser` : "Search - WrapDB Browser" },
+    {
+      title: query
+        ? `Search: ${query} - WrapDB Browser`
+        : "Search - WrapDB Browser",
+    },
     {
       name: "description",
-      content: query 
+      content: query
         ? `Search results for "${query}" in WrapDB packages for Meson build system.`
         : "Search WrapDB packages for Meson build system.",
     },
@@ -156,9 +129,9 @@ export default function Search() {
                   Found {total} packages.
                   {totalPages > 1 && ` Showing page ${page} of ${totalPages}.`}
                 </p>
-                {results.map((pkg) => (
+                {results.map((pkg: PackageFromDB) => (
                   <Link
-                    to={`/package/${pkg.name}/${pkg.packageData.versions[0]}`}
+                    to={`/package/${pkg.name}/${pkg.latest_version}`}
                     key={pkg.name}
                     className="block"
                   >
@@ -176,47 +149,51 @@ export default function Search() {
                         <span
                           className={clsx(
                             "inline-block ml-2 px-2 py-1 text-xs rounded-full",
-                            pkg.metadata?.isOutdated === true &&
-                              "bg-warn text-base-0",
-                            pkg.metadata?.isOutdated === false &&
+                            pkg.is_outdated === 1 && "bg-warn text-base-0",
+                            pkg.is_outdated === 0 &&
                               "bg-success text-content-1",
-                            pkg.metadata?.isOutdated === undefined &&
+                            pkg.is_outdated === null &&
                               clsx(
                                 "bg-base-2 text-content-1 dark:bg-base-2d dark:text-content-1d",
                                 "border border-base-3 dark:border-base-3d",
                               ),
                           )}
                         >
-                          {pkg.packageData.versions[0]}
+                          {pkg.latest_version}
                         </span>
-                        {pkg.metadata?.repo && (
+                        {pkg.repo_owner && pkg.repo_name && (
                           <span className="inline-block ml-2 text-base/8 text-content-2 dark:text-content-2d">
                             &mdash;
                             <GithubIcon className="inline-block w-4 h-4 ml-2 mr-1" />
                             <span>
-                              {pkg.metadata.repo.owner}/{pkg.metadata.repo.name}
+                              {pkg.repo_owner}/{pkg.repo_name}
                             </span>
                           </span>
                         )}
                       </h2>
-                      {pkg.metadata?.description && (
+                      {pkg.description && (
                         <p className="text-base text-content-1 dark:text-content-1d mt-2 line-clamp-2">
-                          {pkg.metadata.description}
+                          {pkg.description}
                         </p>
                       )}
-                      {pkg.wrapFileData &&
-                        pkg.wrapFileData.dependencyNames.length >= 1 && (
-                          <p className="text-sm text-content-2 dark:text-content-2d mt-1 line-clamp-2">
-                            Libraries:{" "}
-                            {pkg.wrapFileData.dependencyNames.join(", ")}
-                          </p>
-                        )}
-                      {pkg.wrapFileData &&
-                        pkg.wrapFileData.programNames.length >= 1 && (
-                          <p className="text-sm text-content-2 dark:text-content-2d mt-1 line-clamp-2">
-                            Programs: {pkg.wrapFileData.programNames.join(", ")}
-                          </p>
-                        )}
+                      {(JSON.parse(pkg.dependency_names) as string[]).length >=
+                        1 && (
+                        <p className="text-sm text-content-2 dark:text-content-2d mt-1 line-clamp-2">
+                          Libraries:{" "}
+                          {(JSON.parse(pkg.dependency_names) as string[]).join(
+                            ", ",
+                          )}
+                        </p>
+                      )}
+                      {(JSON.parse(pkg.program_names) as string[]).length >=
+                        1 && (
+                        <p className="text-sm text-content-2 dark:text-content-2d mt-1 line-clamp-2">
+                          Programs:{" "}
+                          {(JSON.parse(pkg.program_names) as string[]).join(
+                            ", ",
+                          )}
+                        </p>
+                      )}
                     </div>
                   </Link>
                 ))}
@@ -226,7 +203,9 @@ export default function Search() {
                   <div className="flex-1 min-w-max text-right">
                     {page > 1 && (
                       <Link
-                        to={`/search?q=${encodeURIComponent(query || "")}&page=${page - 1}`}
+                        to={`/search?q=${encodeURIComponent(
+                          query || "",
+                        )}&page=${page - 1}`}
                         className={clsx(
                           "mr-2 p-2",
                           "text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline",
@@ -247,7 +226,9 @@ export default function Search() {
                     ) : typeof item === "number" ? (
                       <Link
                         key={index}
-                        to={`/search?q=${encodeURIComponent(query || "")}&page=${item}`}
+                        to={`/search?q=${encodeURIComponent(
+                          query || "",
+                        )}&page=${item}`}
                         className={clsx(
                           "p-2 hidden md:inline",
                           "text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline",
@@ -273,7 +254,9 @@ export default function Search() {
                   <div className="flex-1 min-w-max">
                     {page < totalPages && (
                       <Link
-                        to={`/search?q=${encodeURIComponent(query || "")}&page=${page + 1}`}
+                        to={`/search?q=${encodeURIComponent(
+                          query || "",
+                        )}&page=${page + 1}`}
                         className={clsx(
                           "ml-2 p-2",
                           "text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline",

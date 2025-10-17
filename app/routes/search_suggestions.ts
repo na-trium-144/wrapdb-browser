@@ -1,5 +1,5 @@
+import { searchPackagesFromDB } from "~/utils/d1";
 import type { Route } from "./+types/search_suggestions";
-import { fetchReleases } from "~/utils/wrapdb";
 import { calculateScore } from "~/utils/search";
 
 export type Suggestion = {
@@ -7,7 +7,10 @@ export type Suggestion = {
   latest_version: string;
 };
 
-export async function loader({ request }: Route.LoaderArgs): Promise<{ suggestions: Suggestion[] }> {
+export async function loader({
+  request,
+  context,
+}: Route.LoaderArgs): Promise<{ suggestions: Suggestion[] }> {
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim();
 
@@ -15,18 +18,14 @@ export async function loader({ request }: Route.LoaderArgs): Promise<{ suggestio
     return { suggestions: [] };
   }
 
-  const packages = await fetchReleases();
-
-  const searchResults = Object.entries(packages)
-    .map(([name, data]) => ({
-      score: calculateScore(name, data, query),
-      name,
-      latest_version: data.versions[0],
-    }))
-    .filter((item) => item.score > 0 && item.latest_version)
+  const db = context.cloudflare.env.DB;
+  const results = await searchPackagesFromDB(db, query);
+  const sortedResults = results
+    .map((pkg) => ({ pkg, score: calculateScore(pkg, query) }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 10) // Get top 10 suggestions
+    .map(({ pkg }) => pkg)
+    .slice(0, 5) // Get top 5 suggestions
     .map((item) => ({ name: item.name, latest_version: item.latest_version }));
 
-  return { suggestions: searchResults };
+  return { suggestions: sortedResults };
 }

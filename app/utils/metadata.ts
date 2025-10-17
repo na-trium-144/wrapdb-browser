@@ -3,16 +3,14 @@ import { fetchMetadataGitHub } from "./metadata/github";
 export type PackageMetadata = {
   description?: string;
   homepage?: string;
-  repo?: GitHubRepository;
+  repo?: {
+    type: "github";
+    owner: string;
+    name: string;
+  },
   license?: string;
   upstreamVersion?: string; // latest upstream version detected from the source repo
   isOutdated?: boolean; // whether the wrap is outdated compared to the upstream version
-};
-
-export type GitHubRepository = {
-  type: "github";
-  owner: string;
-  name: string;
 };
 
 export async function fetchMetadata(

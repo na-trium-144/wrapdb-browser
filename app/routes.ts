@@ -6,4 +6,5 @@ export default [
   route("package/:name/:version", "routes/package.tsx"),
   route("get_patch/:name/:version", "routes/get_patch.ts"),
   route("search_suggestions", "routes/search_suggestions.ts"),
+  route("init_db", "routes/init_db.ts"),
 ] satisfies RouteConfig;

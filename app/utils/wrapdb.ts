@@ -1,6 +1,6 @@
 import * as INI from "ini";
 
-// --- Types ---
+// --- Types for API fetching ---
 export type WrapDbPackageData = {
   dependency_names?: string[];
   program_names?: string[];
@@ -18,20 +18,38 @@ export type WrapFileData = {
   hasPatchUrl: boolean;
 };
 
-// --- API Functions ---
-export async function fetchReleases(): Promise<WrapDbPackages> {
+// --- API Functions (for on-demand fetching) ---
+export async function fetchReleases(): Promise<{
+  packages: WrapDbPackages;
+  hash: string;
+}> {
   const res = await fetch(
-    // "https://wrapdb.mesonbuild.com/v2/releases.json",
     "https://raw.githubusercontent.com/mesonbuild/wrapdb/master/releases.json",
-    {
-      cf: {
-        cacheTtl: 300,
-        cacheEverything: true,
-      },
-    },
   );
   if (!res.ok) throw new Error(`Failed to fetch releases: ${res.statusText}`);
-  return await res.json();
+
+  const content = await res.text();
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(content),
+  );
+  const hash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  const packages: WrapDbPackages = JSON.parse(content);
+  for (const [name, pkg] of Object.entries(packages)) {
+    if (!pkg.dependency_names?.length && !pkg.program_names?.length) {
+      pkg.dependency_names = [name];
+    }
+    if (!pkg.dependency_names) {
+      pkg.dependency_names = [];
+    }
+    if (!pkg.program_names) {
+      pkg.program_names = [];
+    }
+  }
+  return { packages, hash };
 }
 
 export async function fetchWrap(
@@ -39,14 +57,7 @@ export async function fetchWrap(
   version: string,
 ): Promise<WrapFileData> {
   const res = await fetch(
-    // `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/${packageName}.wrap`,
     `https://github.com/mesonbuild/wrapdb/releases/download/${packageName}_${version}/${packageName}.wrap`,
-    {
-      cf: {
-        cacheTtl: 31536000,
-        cacheEverything: true,
-      },
-    },
   );
   if (!res.ok) throw new Error(`Failed to fetch wrap file: ${res.statusText}`);
   const wrapIni = INI.parse(await res.text());
@@ -82,7 +93,6 @@ export async function fetchPatch(
   version: string,
 ): Promise<Response> {
   const res = await fetch(
-    // `https://wrapdb.mesonbuild.com/v2/${packageName}_${version}/get_patch`,
     `https://github.com/mesonbuild/wrapdb/releases/download/${packageName}_${version}/${packageName}_${version}_patch.zip`,
     {
       cf: {

@@ -15,10 +15,6 @@ export async function fetchMetadataGitHub(
     `https://api.github.com/repos/${repoOwner}/${repoName}`,
     {
       headers: githubAPIHeaders,
-      cf: {
-        cacheTtl: 86400,
-        cacheEverything: true,
-      },
     },
   );
   if (!res.ok) {
@@ -57,10 +53,6 @@ export async function fetchMetadataGitHub(
         `https://api.github.com/repos/${repoOwner}/${repoName}/tags?per_page=100&page=${tagAPIPage}`,
         {
           headers: githubAPIHeaders,
-          cf: {
-            cacheTtl: 300,
-            cacheEverything: true,
-          },
         },
       );
       if (!tagsRes.ok) {

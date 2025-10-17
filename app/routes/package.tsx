@@ -2,12 +2,12 @@ import React, { useMemo } from "react";
 import { useLoaderData, useNavigate } from "react-router";
 import type { Route } from "./+types/package";
 import {
-  fetchReleases,
-  fetchWrap,
-  type WrapDbPackageData,
-  type WrapFileData,
-} from "~/utils/wrapdb";
-import { fetchMetadata, type PackageMetadata } from "~/utils/metadata";
+  getVersionsForPackageFromDB,
+  type PackageFromDB,
+  type VersionFromDB,
+  getOrUpdatePackageInDB,
+  getOrUpdateVersionInDB,
+} from "~/utils/d1";
 import { Section } from "~/components/section";
 import clsx from "clsx";
 import { GithubIcon, LinkIcon, TagIcon } from "~/components/icon";
@@ -20,26 +20,18 @@ import {
   type MesonOption,
   type MesonValue,
 } from "~/utils/optionParser";
+import { fetchWrap } from "~/utils/wrapdb";
 
-// --- Types ---
-type PackageDetail =
-  | {
-      name: string;
-      version: string;
-      error: null;
-      packageData: WrapDbPackageData;
-      wrapFileData: WrapFileData;
-      metadata?: PackageMetadata;
-      title: string;
-      description: string;
-    }
-  | {
-      name: string;
-      version: string;
-      error: "notFound" | "error";
-      title: string;
-      description: string;
-    };
+type PackageDetail = {
+  name: string;
+  version: string;
+  error: null | "notFound" | "error";
+  title: string;
+  description: string;
+  packageData?: PackageFromDB;
+  versionData?: VersionFromDB;
+  allVersions?: string[];
+};
 
 // --- Data Loader ---
 export async function loader({
@@ -48,54 +40,44 @@ export async function loader({
 }: Route.LoaderArgs): Promise<PackageDetail> {
   const name = params.name || "";
   const version = params.version || "";
+  const db = context.cloudflare.env.DB;
 
   try {
-    const packages = await fetchReleases();
-    const packageData = packages[name];
+    // 1. Fetch main data from D1
+    const [pkgFromDB, versionFromDB, allVersionsFromDB] = await Promise.all([
+      getOrUpdatePackageInDB(db, name, context.env, null),
+      getOrUpdateVersionInDB(db, name, version),
+      getVersionsForPackageFromDB(db, name),
+    ]);
 
-    if (!packageData || !packageData.versions.includes(version)) {
+    if (!pkgFromDB || !versionFromDB) {
       return {
-        name: name,
-        version: version,
+        name,
+        version,
         error: "notFound",
         title: "Package Not Found - WrapDB Browser",
         description: "The requested package could not be found in WrapDB.",
       };
     }
 
-    const wrapFileData = fetchWrap(name, version);
-
-    // 選択したバージョンによらず常に最新のものを取得
-    const latestWrapFileData = fetchWrap(name, packageData.versions[0]);
-    const metadata = await latestWrapFileData.then((latestWrapFileData) =>
-      fetchMetadata(
-        latestWrapFileData.sourceUrl,
-        packageData.versions[0],
-        context.cloudflare.env,
-      ),
-    );
-
     return {
-      name: name,
-      version: version,
+      name,
+      version,
       error: null,
-      packageData,
-      wrapFileData: await wrapFileData,
-      metadata: metadata,
+      packageData: pkgFromDB,
+      versionData: versionFromDB,
+      allVersions: allVersionsFromDB.map((v) => v.version),
       title: `${name} ${version} - WrapDB Browser`,
-      description: metadata?.description
-        ? metadata.description
-        : `${name} ${version}`,
+      description: pkgFromDB.description || `${name} ${version}`,
     };
   } catch (error) {
     console.error("Failed to fetch package data:", error);
     return {
-      name: name,
-      version: version,
+      name,
+      version,
       error: "error",
       title: "Error - WrapDB Browser",
-      description:
-        "An error occurred while fetching package information. Please try again later.",
+      description: "An error occurred while fetching package information.",
     };
   }
 }
@@ -128,7 +110,11 @@ export default function PackageDetailPage() {
   const pkg = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const patchSWR = useSWR(
-    [pkg.name, pkg.version, pkg.error === null && pkg.wrapFileData.hasPatchUrl],
+    [
+      pkg.name,
+      pkg.version,
+      pkg.error === null && !!pkg.versionData?.has_patch_url,
+    ],
     patchFetcher,
     {
       revalidateOnFocus: false,
@@ -145,6 +131,28 @@ export default function PackageDetailPage() {
     }
   }, [patchSWR.data]);
 
+  if (pkg.error) {
+    return (
+      <>
+        <title>{pkg.title}</title>
+        <meta name="description" content={pkg.description} />
+        <Header />
+        <div className="mt-24 w-full max-w-4xl mx-auto">
+          <h1 className="text-5xl font-bold mt-4 text-content-0 dark:text-content-0d">
+            {pkg.name}
+          </h1>
+          <p className="text-lg mt-4 text-content-2 dark:text-content-2d">
+            {pkg.error === "notFound"
+              ? "Package or version not found in WrapDB."
+              : "An error occurred while fetching package information."}
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  const { name, version, packageData, versionData, allVersions } = pkg;
+
   return (
     <>
       <title>{pkg.title}</title>
@@ -152,58 +160,53 @@ export default function PackageDetailPage() {
       <Header />
       <div className="mt-24 w-full max-w-4xl mx-auto">
         <h1 className="text-5xl font-bold mt-4 text-content-0 dark:text-content-0d">
-          {pkg.name}
+          {name}
         </h1>
         <div className="text-lg mt-4 space-y-2">
           <p className="text-content-2 dark:text-content-2d">
-            {pkg.error === null ? (
-              pkg.metadata ? (
-                pkg.metadata.description
-              ) : (
-                <>
-                  <p className="">
-                    Metadata for this package is not yet available in WrapDB
-                    Browser.
-                  </p>
+            {packageData?.description ? (
+              packageData.description
+            ) : (
+              <>
+                <p className="">
+                  Metadata for this package is not yet available.
+                </p>
+                {versionData?.source_url && (
                   <p className="">
                     Source URL is{" "}
                     <a
-                      href={pkg.wrapFileData.sourceUrl}
+                      href={versionData.source_url}
                       target="_blank"
                       rel="noopener"
                       className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
                     >
-                      {pkg.wrapFileData.sourceUrl}
+                      {versionData.source_url}
                     </a>
                     .
                   </p>
-                </>
-              )
-            ) : pkg.error === "notFound" ? (
-              "Package not found in WrapDB."
-            ) : (
-              "An error occurred while fetching package information."
+                )}
+              </>
             )}
           </p>
-          {pkg.error === null && pkg.metadata?.repo && (
+          {packageData?.repo_type && (
             <div className="text-lg">
               <a
-                href={`https://github.com/${pkg.metadata.repo.owner}/${pkg.metadata.repo.name}`}
+                href={`https://github.com/${packageData.repo_owner}/${packageData.repo_name}`}
                 target="_blank"
                 rel="noopener"
                 className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
               >
                 <GithubIcon className="inline-block w-5 h-5 mr-2" />
                 <span>
-                  {pkg.metadata.repo.owner}/{pkg.metadata.repo.name}
+                  {packageData.repo_owner}/{packageData.repo_name}
                 </span>
               </a>
-              {pkg.metadata.upstreamVersion && (
+              {packageData.latest_upstream_version && (
                 <div className="inline-block text-base text-content-2 dark:text-content-2d ml-4">
                   <span className="text-sm">Latest Upstream Version:</span>
                   <TagIcon className="inline-block w-4 h-4 ml-1 mr-1" />
-                  <span>{pkg.metadata.upstreamVersion}</span>
-                  {pkg.metadata.isOutdated && (
+                  <span>{packageData.latest_upstream_version}</span>
+                  {!!packageData.is_outdated && (
                     <span
                       className={clsx(
                         "ml-2 px-2 py-1 text-xs",
@@ -217,16 +220,16 @@ export default function PackageDetailPage() {
               )}
             </div>
           )}
-          {pkg.error === null && pkg.metadata?.homepage && (
+          {packageData?.homepage && (
             <p>
               <a
-                href={pkg.metadata.homepage}
+                href={packageData.homepage}
                 target="_blank"
                 rel="noopener"
                 className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
               >
                 <LinkIcon className="inline-block w-5 h-5 mr-2" />
-                <span>{pkg.metadata.homepage}</span>
+                <span>{packageData.homepage}</span>
               </a>
             </p>
           )}
@@ -245,63 +248,38 @@ export default function PackageDetailPage() {
           for details.
         </div>
 
-        {pkg.error === null && (
-          <main className="mt-6 space-y-6">
-            <h2 className="flex flex-row items-baseline gap-4">
-              <span className="text-xl font-semibold">Version:</span>
-              <select
-                value={pkg.version}
-                onChange={(e) =>
-                  navigate(`/package/${pkg.name}/${e.target.value}`)
-                }
-                className="p-2 border rounded-md bg-base-1 dark:bg-base-1d border-base-2 dark:border-base-2d"
-              >
-                {pkg.packageData.versions
-                  .filter(
-                    (v, i) =>
-                      // 同じパッケージバージョンが複数ある場合は最新のリビジョンのみを表示
-                      !pkg.packageData.versions[i - 1]?.startsWith(
-                        v.split("-")[0],
-                      ),
-                  )
-                  .map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                      {v === pkg.packageData.versions[0] ? " (latest)" : ""}
-                    </option>
-                  ))}
-              </select>
-            </h2>
+        <main className="mt-6 space-y-6">
+          <h2 className="flex flex-row items-baseline gap-4">
+            <span className="text-xl font-semibold">Version:</span>
+            <select
+              value={version}
+              onChange={(e) => navigate(`/package/${name}/${e.target.value}`)}
+              className="p-2 border rounded-md bg-base-1 dark:bg-base-1d border-base-2 dark:border-base-2d"
+            >
+              {allVersions
+                ?.filter(
+                  (v, i) => !allVersions[i - 1]?.startsWith(v.split("-")[0]),
+                )
+                .map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                    {v === packageData?.latest_version ? " (latest)" : ""}
+                  </option>
+                ))}
+            </select>
+          </h2>
 
-            <Section title="Usage">
-              {pkg.version === pkg.packageData.versions[0] ? (
-                <>
-                  <p className="mb-4">
-                    Install the latest {pkg.name} package with the following
-                    command:
-                  </p>
-                  <CodeBlock
-                    copyButton
-                  >{`meson wrap install ${pkg.name}`}</CodeBlock>
-                  <p className="mt-4 mb-4">
-                    Or, download the wrap file directly from
-                    <a
-                      href={`https://wrapdb.mesonbuild.com/v2/${pkg.name}_${pkg.version}/${pkg.name}.wrap`}
-                      target="_blank"
-                      rel="noopener"
-                      className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline mx-1"
-                    >
-                      this link
-                    </a>
-                    and place it in the 'subprojects' directory of your project.
-                  </p>
-                </>
-              ) : (
+          <Section title="Usage">
+            {version === packageData?.latest_version ? (
+              <>
                 <p className="mb-4">
-                  To use version {pkg.version} of {pkg.name}, you need to
-                  manually download the wrap file from
+                  Install the latest {name} package with the following command:
+                </p>
+                <CodeBlock copyButton>{`meson wrap install ${name}`}</CodeBlock>
+                <p className="mt-4 mb-4">
+                  Or, download the wrap file directly from
                   <a
-                    href={`https://wrapdb.mesonbuild.com/v2/${pkg.name}_${pkg.version}/${pkg.name}.wrap`}
+                    href={`https://wrapdb.mesonbuild.com/v2/${name}_${version}/${name}.wrap`}
                     target="_blank"
                     rel="noopener"
                     className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline mx-1"
@@ -310,68 +288,87 @@ export default function PackageDetailPage() {
                   </a>
                   and place it in the 'subprojects' directory of your project.
                 </p>
-              )}
-              <div className="border-b border-base-2 dark:border-base-2d mb-4" />
+              </>
+            ) : (
               <p className="mb-4">
-                Libraries (or programs) from {pkg.name} {pkg.version} can be
-                used by adding the following lines to your meson.build file:
+                To use version {version} of {name}, you need to manually
+                download the wrap file from
+                <a
+                  href={`https://wrapdb.mesonbuild.com/v2/${name}_${version}/${name}.wrap`}
+                  target="_blank"
+                  rel="noopener"
+                  className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline mx-1"
+                >
+                  this link
+                </a>
+                and place it in the 'subprojects' directory of your project.
               </p>
-              <CodeBlock copyButton language="meson">
-                {[
-                  pkg.wrapFileData.dependencyNames.map(
-                    (name) => `${name}_dep = dependency('${name}')`,
-                  ),
-                  pkg.wrapFileData.programNames.map(
-                    (name) => `${name}_prog = find_program('${name}')`,
-                  ),
-                ]
-                  .flat()
-                  .join("\n")}
-              </CodeBlock>
-            </Section>
-
-            {pkg.wrapFileData.hasPatchUrl && (
-              <Section title="Project Options">
-                {patchSWR.data ? (
-                  options.length >= 1 ? (
-                    <>
-                      <p className="text-sm italic">
-                        Bold values indicate the default value.
-                      </p>
-                      <ul className="list-disc list-outside pl-4 mt-1 space-y-1">
-                        {options.map((option) => (
-                          <OptionItem
-                            key={option.name}
-                            pkgName={pkg.name}
-                            option={option}
-                          />
-                        ))}
-                      </ul>
-                    </>
-                  ) : (
-                    <p>No options available in this package.</p>
-                  )
-                ) : patchSWR.error ? (
-                  <p>Could not load patch files.</p>
-                ) : (
-                  patchSWR.isLoading && <p>Loading patch files...</p>
-                )}
-              </Section>
             )}
+            {versionData && (
+              <>
+                <div className="border-b border-base-2 dark:border-base-2d mb-4" />
+                <p className="mb-4">
+                  Libraries (or programs) from {name} {version} can be used by
+                  adding the following lines to your meson.build file:
+                </p>
+                <CodeBlock copyButton language="meson">
+                  {[
+                    (JSON.parse(versionData.dependency_names) as string[]).map(
+                      (depName) => `${depName}_dep = dependency('${depName}')`,
+                    ),
+                    (JSON.parse(versionData.program_names) as string[]).map(
+                      (progName) =>
+                        `${progName}_prog = find_program('${progName}')`,
+                    ),
+                  ]
+                    .flat()
+                    .join("\n")}
+                </CodeBlock>
+              </>
+            )}
+          </Section>
 
-            <Section title="Patch Files Preview">
-              {!pkg.wrapFileData.hasPatchUrl ? (
-                <p>No patch files needed for this package.</p>
-              ) : patchSWR.data ? (
-                <PatchFilePreview files={patchSWR.data} />
+          {!!versionData?.has_patch_url && (
+            <Section title="Project Options">
+              {patchSWR.data ? (
+                options.length >= 1 ? (
+                  <>
+                    <p className="text-sm italic">
+                      Bold values indicate the default value.
+                    </p>
+                    <ul className="list-disc list-outside pl-4 mt-1 space-y-1">
+                      {options.map((option) => (
+                        <OptionItem
+                          key={option.name}
+                          pkgName={name}
+                          option={option}
+                        />
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p>No options available in this package.</p>
+                )
               ) : patchSWR.error ? (
                 <p>Could not load patch files.</p>
               ) : (
                 patchSWR.isLoading && <p>Loading patch files...</p>
               )}
             </Section>
-          </main>
-        )}
+          )}
+
+          <Section title="Patch Files Preview">
+            {!versionData?.has_patch_url ? (
+              <p>No patch files needed for this package.</p>
+            ) : patchSWR.data ? (
+              <PatchFilePreview files={patchSWR.data} />
+            ) : patchSWR.error ? (
+              <p>Could not load patch files.</p>
+            ) : (
+              patchSWR.isLoading && <p>Loading patch files...</p>
+            )}
+          </Section>
+        </main>
       </div>
     </>
   );
