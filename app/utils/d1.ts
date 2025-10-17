@@ -1,4 +1,5 @@
 import { fetchMetadata } from "./metadata";
+import { semVerCompare } from "./semVer";
 import { fetchReleases, fetchWrap, type WrapFileData } from "./wrapdb";
 
 // --- Types for D1 Database ---
@@ -102,13 +103,17 @@ export async function getOrUpdatePackageInDB(
         );
         await stmt
           .bind(
-            metadata.description,
-            metadata.homepage,
-            metadata.repo?.type,
-            metadata.repo?.owner,
-            metadata.repo?.name,
-            metadata.upstreamVersion,
-            metadata.isOutdated ? 1 : 0,
+            metadata.description ?? null,
+            metadata.homepage ?? null,
+            metadata.repo?.type ?? null,
+            metadata.repo?.owner ?? null,
+            metadata.repo?.name ?? null,
+            metadata.upstreamVersion ?? null,
+            metadata.isOutdated === true
+              ? 1
+              : metadata.isOutdated === false
+                ? 0
+                : null,
             Math.floor(Date.now() / 1000),
             name,
           )
@@ -148,15 +153,7 @@ export async function getVersionsForPackageFromDB(
     .prepare("SELECT * FROM versions WHERE package_name = ?1")
     .bind(name)
     .all<VersionFromDB>();
-  return results
-    .map((result) => ({
-      ...result,
-      semVerValue: result.version
-        .split(".")
-        .reduce((str, part) => str + part.padStart(10, "0"), ""),
-    }))
-    .sort((a, b) => (a.semVerValue > b.semVerValue ? -1 : 1))
-    .map(({ semVerValue, ...rest }) => rest);
+  return results.sort((a, b) => -semVerCompare(a.version, b.version));
 }
 
 export async function getOrUpdateVersionInDB(

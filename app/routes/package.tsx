@@ -21,6 +21,8 @@ import {
   type MesonValue,
 } from "~/utils/optionParser";
 import { fetchWrap } from "~/utils/wrapdb";
+import { DisplayUpstreamRepo } from "~/components/upstreamRepo";
+import type { RepoType } from "~/utils/metadata";
 
 type PackageDetail = {
   name: string;
@@ -190,17 +192,12 @@ export default function PackageDetailPage() {
           </p>
           {packageData?.repo_type && (
             <div className="text-lg">
-              <a
-                href={`https://github.com/${packageData.repo_owner}/${packageData.repo_name}`}
-                target="_blank"
-                rel="noopener"
+              <DisplayUpstreamRepo
                 className="text-link dark:text-linkd hover:text-linkh dark:hover:text-linkdh hover:underline"
-              >
-                <GithubIcon className="inline-block w-5 h-5 mr-2" />
-                <span>
-                  {packageData.repo_owner}/{packageData.repo_name}
-                </span>
-              </a>
+                repoType={packageData.repo_type as RepoType}
+                owner={packageData.repo_owner!}
+                name={packageData.repo_name!}
+              />
               {packageData.latest_upstream_version && (
                 <div className="inline-block text-base text-content-2 dark:text-content-2d ml-4">
                   <span className="text-sm">Latest Upstream Version:</span>

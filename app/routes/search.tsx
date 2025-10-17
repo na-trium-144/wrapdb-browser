@@ -9,6 +9,8 @@ import clsx from "clsx";
 import { GithubIcon } from "~/components/icon";
 import { Header } from "~/components/header";
 import { calculateScore } from "~/utils/search";
+import { DisplayUpstreamRepo } from "~/components/upstreamRepo";
+import type { RepoType } from "~/utils/metadata";
 
 // --- Data Loader ---
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -161,13 +163,15 @@ export default function Search() {
                         >
                           {pkg.latest_version}
                         </span>
-                        {pkg.repo_owner && pkg.repo_name && (
+                        {pkg.repo_type && (
                           <span className="inline-block ml-2 text-base/8 text-content-2 dark:text-content-2d">
                             &mdash;
-                            <GithubIcon className="inline-block w-4 h-4 ml-2 mr-1" />
-                            <span>
-                              {pkg.repo_owner}/{pkg.repo_name}
-                            </span>
+                            <DisplayUpstreamRepo
+                              className="ml-2"
+                              repoType={pkg.repo_type as RepoType}
+                              owner={pkg.repo_owner!}
+                              name={pkg.repo_name!}
+                            />
                           </span>
                         )}
                       </h2>
