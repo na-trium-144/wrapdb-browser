@@ -24,7 +24,13 @@ export async function fetchMetadataGitLab(
   if (!res.ok) {
     throw new Error(`Failed to fetch metadata: ${res.statusText}`);
   }
-  const data = (await res.json()) as any;
+  const resBody = await res.text();
+  let data: any;
+  try {
+    data = JSON.parse(resBody);
+  } catch {
+    throw new Error(`Failed to parse metadata. Original response: ${resBody}`);
+  }
 
   const { upstreamVersion, isOutdated } = await findUpstreamVersion(
     source.currentTagName,
@@ -41,7 +47,13 @@ export async function fetchMetadataGitLab(
       if (!res.ok) {
         throw new Error(`Failed to fetch tags: ${res.statusText}`);
       }
-      const tagsData = (await res.json()) as { name: string }[];
+      const resBody = await res.text();
+      let tagsData: { name: string }[];
+      try {
+        tagsData = JSON.parse(resBody);
+      } catch {
+        throw new Error(`Failed to parse tags. Original response: ${resBody}`);
+      }
       const linkHeader = res.headers.get("Link");
       return {
         tags: tagsData.map((tag) => tag.name),
