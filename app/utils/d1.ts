@@ -227,7 +227,8 @@ export async function syncDatabase(db: D1Database, kv: KVNamespace) {
 
     // 3. Prepare batch statements
     const packageInsertStmt = db.prepare(
-      `INSERT OR IGNORE INTO packages (name, dependency_names, program_names, latest_version) VALUES (?1, ?2, ?3, ?4)`,
+      `INSERT INTO packages (name, dependency_names, program_names, latest_version) VALUES (?1, ?2, ?3, ?4)
+       ON CONFLICT(name) DO UPDATE SET dependency_names = excluded.dependency_names, program_names = excluded.program_names, latest_version = excluded.latest_version`,
     );
     const versionInsertStmt = db.prepare(
       `INSERT OR IGNORE INTO versions (package_name, version) VALUES (?1, ?2)`,
