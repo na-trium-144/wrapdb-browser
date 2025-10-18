@@ -3,7 +3,7 @@ import { syncDatabase } from "~/utils/d1";
 
 export async function loader({ context }: Route.LoaderArgs) {
   // to enable this route only in development, you need to add ENABLE_INITDB=1 to your .env file.
-  if (!context.cloudflare.env.ENABLE_INITDB) {
+  if (!(context.cloudflare.env as any).ENABLE_INITDB) {
     return new Response(
       JSON.stringify({
         success: false,
