@@ -29,7 +29,7 @@
 		"@react-router/dev": "^7.9.2",
 		"@tailwindcss/vite": "^4.1.13",
 		"@types/ini": "^4.1.1",
-		"@types/node": "^24.7.2",
+		"@types/node": "^24.10.0",
 		"@types/react": "^19.1.13",
 		"@types/react-dom": "^19.1.9",
 		"tailwindcss": "^4.1.13",
