@@ -71,11 +71,26 @@ export function SearchBox({
     };
   }, []);
 
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const handleCtrlK = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        ref.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleCtrlK);
+    return () => {
+      window.removeEventListener("keydown", handleCtrlK);
+    };
+  }, []);
+
   return (
     <div className={clsx(className)}>
       <form onSubmit={handleSearch} className="flex">
         <div className="relative flex-1">
           <input
+            ref={ref}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
