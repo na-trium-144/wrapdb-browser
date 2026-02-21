@@ -2,14 +2,15 @@
 	"name": "wrapdb-browser",
 	"private": true,
 	"type": "module",
+	"packageManager": "pnpm@10.28.1",
 	"scripts": {
 		"build": "react-router build",
 		"cf-typegen": "wrangler types",
-		"deploy": "npm run build && wrangler deploy",
+		"deploy": "pnpm run build && wrangler deploy",
 		"dev": "react-router dev",
-		"postinstall": "npm run cf-typegen",
-		"preview": "npm run build && vite preview",
-		"typecheck": "npm run cf-typegen && react-router typegen && tsc -b"
+		"postinstall": "pnpm run cf-typegen",
+		"preview": "pnpm run build && vite preview",
+		"typecheck": "pnpm run cf-typegen && react-router typegen && tsc -b"
 	},
 	"dependencies": {
 		"@types/react-syntax-highlighter": "^15.5.13",

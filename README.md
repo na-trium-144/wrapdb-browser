@@ -22,7 +22,7 @@ https://wrapdb.natrium144.org/
 
 ## Development
 
-Install Node.js.
+Install Node.js and pnpm.
 
 Put the following environment variables in a `.env` file:
 
@@ -33,9 +33,9 @@ ENABLE_INITDB=1
 Install dependencies, create database and start the development server:
 
 ```sh
-npm ci
-npx wrangler d1 migrations apply wrapdb --local
-npm run dev
+pnpm ci
+pnpm exec wrangler d1 migrations apply wrapdb --local
+pnpm run dev
 ```
 
 Initialize database by accessing `http://localhost:5173/init_db` in yout browser first.
