@@ -24,6 +24,13 @@ import { fetchWrap } from "~/utils/wrapdb";
 import { DisplayUpstreamRepo } from "~/components/upstreamRepo";
 import type { RepoType } from "~/utils/metadata";
 
+function toMesonVarName(name: string): string {
+  return name
+    .split("-")
+    .filter((segment) => !/^\d[\d.]*$/.test(segment))
+    .join("_");
+}
+
 type PackageDetail = {
   name: string;
   version: string;
@@ -311,11 +318,12 @@ export default function PackageDetailPage() {
                 <CodeBlock copyButton language="meson">
                   {[
                     (JSON.parse(versionData.dependency_names) as string[]).map(
-                      (depName) => `${depName}_dep = dependency('${depName}')`,
+                      (depName) =>
+                        `${toMesonVarName(depName)}_dep = dependency('${depName}')`,
                     ),
                     (JSON.parse(versionData.program_names) as string[]).map(
                       (progName) =>
-                        `${progName}_prog = find_program('${progName}')`,
+                        `${toMesonVarName(progName)}_prog = find_program('${progName}')`,
                     ),
                   ]
                     .flat()
