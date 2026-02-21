@@ -44,7 +44,7 @@ export async function searchPackagesFromDB(db: D1Database, query: string) {
 export async function getOrUpdatePackageInDB(
   db: D1Database,
   name: string,
-  env: any,
+  env: Env,
   // pass packageData to avoid redundant fetch if you already obtained from searchPackagesFromDB
   packageData: PackageFromDB | null,
 ): Promise<PackageFromDB | null> {

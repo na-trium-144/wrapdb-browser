@@ -3,13 +3,15 @@ import { findUpstreamVersion, type PackageMetadata } from "../metadata";
 export async function fetchMetadataGitHub(
   sourceUrl: string,
   wrapLatestVersion: string,
-  env: any,
+  env: Env,
 ): Promise<PackageMetadata> {
   const repoOwner = sourceUrl.split("/")[3];
   const repoName = sourceUrl.split("/")[4].replace(/\.git$/, "");
   const githubAPIHeaders = {
     "User-Agent": "wrapdb-browser",
-    ...(env.GITHUB_PAT ? { Authorization: `Bearer ${env.GITHUB_PAT}` } : {}),
+    ...((env as any).GITHUB_PAT
+      ? { Authorization: `Bearer ${(env as any).GITHUB_PAT}` }
+      : {}),
   };
   const res = await fetch(
     `https://api.github.com/repos/${repoOwner}/${repoName}`,

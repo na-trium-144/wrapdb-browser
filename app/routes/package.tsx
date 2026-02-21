@@ -47,7 +47,7 @@ export async function loader({
   try {
     // 1. Fetch main data from D1
     const [pkgFromDB, versionFromDB, allVersionsFromDB] = await Promise.all([
-      getOrUpdatePackageInDB(db, name, context.env, null),
+      getOrUpdatePackageInDB(db, name, context.cloudflare.env, null),
       getOrUpdateVersionInDB(db, name, version),
       getVersionsForPackageFromDB(db, name),
     ]);

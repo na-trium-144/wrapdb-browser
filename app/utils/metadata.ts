@@ -19,7 +19,7 @@ export type RepoType = "github" | "gitlab" | "gitlab-gnome";
 export async function fetchMetadata(
   sourceUrl: string,
   wrapLatestVersion: string,
-  env: any,
+  env: Env,
 ): Promise<PackageMetadata | undefined> {
   // the version number of wrap is `<package version>-<wrap revision>`.
   // so remove the suffix here.
@@ -44,7 +44,7 @@ export async function fetchMetadata(
         currentTagName: sourceUrl.split("/")[7],
       },
       wrapLatestVersion,
-      // env,
+      env,
     );
   }
   if (/^download\.gnome\.org$/.test(new URL(sourceUrl).hostname)) {
@@ -59,7 +59,7 @@ export async function fetchMetadata(
           /.*-([\d.]+)\.tar\.xz/.exec(sourceUrl.split("/")[6])?.[1] ?? "",
       },
       wrapLatestVersion,
-      // env,
+      env,
     );
   }
 
