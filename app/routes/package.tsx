@@ -404,7 +404,8 @@ function OptionItem({
       value = option.value ?? 0;
       break;
     case "array":
-      value = option.value ?? [];
+      value = option.value ?? option.choices ?? [];
+      choices = option.choices ?? null;
       break;
     case "feature":
       value = option.value ?? "auto";
@@ -440,26 +441,47 @@ function OptionItem({
             yield
           </span>
         )}
-        <span className="ml-1 mr-1">=</span>
-        {choices ? (
-          choices.map((choice, index) => (
-            <>
-              {index > 0 && (
-                <span key={index} className="mx-1 text-sm">
-                  /
-                </span>
-              )}
-              <DisplayMesonValue
-                value={choice}
-                className={clsx(choice === value ? "font-bold" : "text-sm!")}
-              />
-            </>
-          ))
-        ) : (
-          <span className="ml-1 px-2 py-1 text-sm bg-base-2 dark:bg-base-2d rounded-full">
-            {String(value)}
+        {option.type === "array" && (
+          <span
+            className={clsx(
+              "inline-block ml-1 px-1.5 py-0.5 text-xs rounded-full",
+              "bg-base-2 text-content-1 dark:bg-base-2d dark:text-content-1d",
+              "border border-base-3 dark:border-base-3d",
+            )}
+          >
+            array
           </span>
         )}
+        <span className="ml-1 mr-1">=</span>
+        {choices
+          ? choices.map((choice, index) => (
+              <>
+                {index > 0 && (
+                  <span key={index} className="mx-1 text-sm">
+                    /
+                  </span>
+                )}
+                <DisplayMesonValue
+                  value={choice}
+                  className={clsx(
+                    choice === value ||
+                      (Array.isArray(value) && value.includes(choice))
+                      ? "font-bold"
+                      : "text-sm!",
+                  )}
+                />
+              </>
+            ))
+          : (Array.isArray(value) ? value : [value]).map((value, index) => (
+              <>
+                {index > 0 && (
+                  <span key={index} className="mx-1 text-sm">
+                    ,
+                  </span>
+                )}
+                <DisplayMesonValue value={value} className={"font-bold"} />
+              </>
+            ))}
         {(typeof option.min === "number" || typeof option.max === "number") && (
           <span className="font-sans text-sm ml-2">
             (min: {option.min}, max: {option.max})
